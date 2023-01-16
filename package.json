@@ -42,6 +42,11 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "tslib": "~2.3.1"
+    "tslib": "~2.3.1",
+    "@node-wot/binding-http": "0.8.x",
+    "@node-wot/core": "0.8.x",
+    "wot-typescript-definitions": "0.8.0-SNAPSHOT.23",
+    "request": "2.88.0",
+    "ajv": "^6.12.6"
   }
 }
