@@ -29,7 +29,7 @@
     "typescript": "~4.4.4"
   },
   "scripts": {
-    "start": "node build/src/app.js",
+    "start": "node build/src/gateway.js",
     "prestart": "npm run build",
     "clean": "rimraf coverage build tmp",
     "prebuild": "npm run lint",
