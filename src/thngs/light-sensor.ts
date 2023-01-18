@@ -1,5 +1,5 @@
 import * as WoT from "wot-typescript-definitions";
-import request from "request";
+import fetch from "node-fetch";
 
 export class LightSensor {
     public thing: WoT.ExposedThing;
@@ -56,18 +56,27 @@ export class LightSensor {
 
     public register(directory: string) {
         console.log("Registering TD in directory: " + directory);
-        request.post(directory, { json: this.thing.getThingDescription() }, (error, response, _body) => {
-            if (!error && response.statusCode < 300) {
+        fetch(directory, {
+            method: "POST",
+            body: JSON.stringify(this.thing.getThingDescription()),
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => {
+            if (response.status < 300) {
                 console.log("TD registered!");
             } else {
-                console.debug(error);
-                console.debug(response);
                 console.warn("Failed to register TD. Will try again in 10 Seconds...");
                 setTimeout(() => {
                     this.register(directory);
                 }, 10000);
                 return;
             }
+        }).catch((error) => {
+            console.debug(error);
+            console.warn("Failed to register TD. Will try again in 10 Seconds...");
+            setTimeout(() => {
+                this.register(directory);
+            }, 10000);
+            return;
         });
     }
 
