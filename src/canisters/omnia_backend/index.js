@@ -27,10 +27,18 @@ export const createActor = (canisterId, options = {}) => {
     if (ENV_VARIABLES.OMNIA_BACKEND_ROOT_KEY_HEX) {
       agent.rootKey = fromHex(ENV_VARIABLES.OMNIA_BACKEND_ROOT_KEY_HEX);
     } else {
-      agent.fetchRootKey().catch(err => {
-        console.warn("Unable to fetch root key. Check to ensure that your local replica is running");
-        console.error(err);
-      });
+      agent.fetchRootKey()
+        // uncomment the following block to print the local root key. Paste it in the OMNIA_BACKEND_ROOT_KEY_HEX env variable
+        // .then((root_key) => {
+        //   console.log([...new Uint8Array(root_key)]
+        //     .map(x => x.toString(16).padStart(2, '0'))
+        //     .join('')
+        //   )
+        // })
+        .catch(err => {
+          console.warn("Unable to fetch root key. Check to ensure that your local replica is running");
+          console.error(err);
+        });
     }
 
   }
