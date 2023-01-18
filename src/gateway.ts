@@ -25,5 +25,5 @@ servient.start().then(async (WoT) => {
     await lightActuator.startDevice();
 
     // console.log(omnia_backend);
-    console.log(await omnia_backend.getProfile());
+    console.log(await omnia_backend.initGateway());
 });
