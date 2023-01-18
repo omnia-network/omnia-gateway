@@ -5,34 +5,35 @@ import type { ActorMethod } from '@dfinity/agent';
 
 export interface DeviceRegistrationInput {
   'device_name' : string,
-  'env_uid' : number,
-  'gateway_uid' : number,
+  'env_uid' : string,
+  'gateway_uid' : string,
 }
 export interface DeviceRegistrationResult {
   'device_name' : string,
-  'device_uid' : number,
+  'device_uid' : string,
 }
 export interface EnvironmentCreationInput { 'env_name' : string }
 export interface EnvironmentCreationResult {
-  'env_uid' : number,
+  'env_uid' : string,
   'env_name' : string,
 }
 export interface EnvironmentInfo {
   'env_manager_principal_id' : string,
-  'env_uid' : number,
+  'env_uid' : string,
   'env_name' : string,
 }
 export interface GatewayRegistrationInput {
   'gateway_name' : string,
-  'env_uid' : number,
+  'env_uid' : string,
+  'gateway_uid' : string,
 }
 export interface GatewayRegistrationResult {
   'gateway_name' : string,
-  'gateway_uid' : number,
+  'gateway_uid' : string,
 }
 export interface UserProfile {
   'user_principal_id' : string,
-  'environment_uid' : [] | [number],
+  'environment_uid' : [] | [string],
 }
 export interface _SERVICE {
   'createEnvironment' : ActorMethod<
@@ -40,14 +41,15 @@ export interface _SERVICE {
     EnvironmentCreationResult
   >,
   'getProfile' : ActorMethod<[], UserProfile>,
+  'initGateway' : ActorMethod<[], string>,
   'registerDevice' : ActorMethod<
     [DeviceRegistrationInput],
     DeviceRegistrationResult
   >,
   'registerGateway' : ActorMethod<
     [GatewayRegistrationInput],
-    GatewayRegistrationResult
+    [] | [GatewayRegistrationResult]
   >,
   'resetEnvironment' : ActorMethod<[], EnvironmentInfo>,
-  'setEnvironment' : ActorMethod<[number], EnvironmentInfo>,
+  'setEnvironment' : ActorMethod<[string], EnvironmentInfo>,
 }

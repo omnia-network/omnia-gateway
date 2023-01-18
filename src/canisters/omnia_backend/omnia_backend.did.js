@@ -3,33 +3,34 @@
 export const idlFactory = ({ IDL }) => {
   const EnvironmentCreationInput = IDL.Record({ 'env_name' : IDL.Text });
   const EnvironmentCreationResult = IDL.Record({
-    'env_uid' : IDL.Nat32,
+    'env_uid' : IDL.Text,
     'env_name' : IDL.Text,
   });
   const UserProfile = IDL.Record({
     'user_principal_id' : IDL.Text,
-    'environment_uid' : IDL.Opt(IDL.Nat32),
+    'environment_uid' : IDL.Opt(IDL.Text),
   });
   const DeviceRegistrationInput = IDL.Record({
     'device_name' : IDL.Text,
-    'env_uid' : IDL.Nat32,
-    'gateway_uid' : IDL.Nat32,
+    'env_uid' : IDL.Text,
+    'gateway_uid' : IDL.Text,
   });
   const DeviceRegistrationResult = IDL.Record({
     'device_name' : IDL.Text,
-    'device_uid' : IDL.Nat32,
+    'device_uid' : IDL.Text,
   });
   const GatewayRegistrationInput = IDL.Record({
     'gateway_name' : IDL.Text,
-    'env_uid' : IDL.Nat32,
+    'env_uid' : IDL.Text,
+    'gateway_uid' : IDL.Text,
   });
   const GatewayRegistrationResult = IDL.Record({
     'gateway_name' : IDL.Text,
-    'gateway_uid' : IDL.Nat32,
+    'gateway_uid' : IDL.Text,
   });
   const EnvironmentInfo = IDL.Record({
     'env_manager_principal_id' : IDL.Text,
-    'env_uid' : IDL.Nat32,
+    'env_uid' : IDL.Text,
     'env_name' : IDL.Text,
   });
   return IDL.Service({
@@ -39,6 +40,7 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'getProfile' : IDL.Func([], [UserProfile], []),
+    'initGateway' : IDL.Func([], [IDL.Text], []),
     'registerDevice' : IDL.Func(
         [DeviceRegistrationInput],
         [DeviceRegistrationResult],
@@ -46,11 +48,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'registerGateway' : IDL.Func(
         [GatewayRegistrationInput],
-        [GatewayRegistrationResult],
+        [IDL.Opt(GatewayRegistrationResult)],
         [],
       ),
     'resetEnvironment' : IDL.Func([], [EnvironmentInfo], []),
-    'setEnvironment' : IDL.Func([IDL.Nat32], [EnvironmentInfo], []),
+    'setEnvironment' : IDL.Func([IDL.Text], [EnvironmentInfo], []),
   });
 };
 export const init = ({ IDL }) => { return []; };
