@@ -23,31 +23,32 @@ servient.addServer(httpServer);
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/ban-ts-comment
 // @ts-ignore
 servient.start().then(async (WoT) => {
-    // const lightSensor = new LightSensor(WoT, TD_DIRECTORY_URI);
-    // await lightSensor.startDevice();
+  // const lightSensor = new LightSensor(WoT, TD_DIRECTORY_URI);
+  // await lightSensor.startDevice();
 
-    // const motionSensor = new MotionSensor(WoT, TD_DIRECTORY_URI);
-    // await motionSensor.startDevice();
+  // const motionSensor = new MotionSensor(WoT, TD_DIRECTORY_URI);
+  // await motionSensor.startDevice();
 
-    // const lightActuator = new LightActuator(WoT, TD_DIRECTORY_URI);
-    // await lightActuator.startDevice();
+  // const lightActuator = new LightActuator(WoT, TD_DIRECTORY_URI);
+  // await lightActuator.startDevice();
 
-    // // console.log(omnia_backend);
-    // console.log(await omnia_backend.initGateway());
+  // // console.log(omnia_backend);
+  // console.log(await omnia_backend.initGateway());
 
-    const matterController = new MatterController(
-        parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
-        ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
-    );
+  const matterController = new MatterController(
+    parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
+    ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
+  );
 
-    await matterController.start();
+  await matterController.start();
 
-    await matterController.sendCommand(
-        new ClusterId(OnOffCluster.id),
-        OnOffCluster.commands.on.requestId,
-        1,
-        new NodeId(BigInt(1)),
-        new EndpointNumber(1),
-    );
+  await matterController.sendCommand(
+    new ClusterId(OnOffCluster.id),
+    OnOffCluster.commands.on.requestId,
+    "{}",
+    new NodeId(BigInt(1)),
+    new EndpointNumber(1),
+  );
 
+  await matterController.stop();
 });

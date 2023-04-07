@@ -17,6 +17,7 @@
     "@types/node": "~16.11.6",
     "@types/node-fetch": "^2.6.2",
     "@types/supertest": "^2.0.12",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "~5.3.0",
     "@typescript-eslint/parser": "~5.3.0",
     "babel-jest": "^29.3.1",
@@ -57,6 +58,7 @@
     "node-fetch": "^3.3.0",
     "tslib": "~2.3.1",
     "winston": "^3.8.2",
-    "wot-typescript-definitions": "0.8.0-SNAPSHOT.23"
+    "wot-typescript-definitions": "0.8.0-SNAPSHOT.23",
+    "ws": "^8.13.0"
   }
 }

@@ -1,4 +1,9 @@
-import type { CHIPData, CHIPParsedResult, CHIPValue, CHIPWSMessage } from "../models";
+import type {
+  CHIPData,
+  CHIPParsedResult,
+  CHIPValue,
+  CHIPWSMessage,
+} from "../models";
 
 export const serializeResult = (result: CHIPParsedResult): string => {
   return JSON.stringify(result, null, 2);
@@ -160,25 +165,25 @@ const parseCHIPResultToJSON = (
   return parsedJSON;
 };
 
-const INITIAL_DATA_MARKERS = ["InvokeResponseMessage =", "ReportDataMessage ="];
+const INITIAL_DATA_MARKERS = ["InvokeResponseMessage=", "ReportDataMessage="];
 
 export const resultParser = (result: string): CHIPParsedResult => {
-  let isData = false;
+  let foundData = false;
   let rawData = "";
 
   const results: CHIPParsedResult = [];
 
   for (const line of result.split("\n")) {
-    if (isData) {
+    if (foundData) {
       rawData += line.replace(/[\n\s]/g, "");
     }
 
     // check if this line contains one of the initial data markers
-    if (INITIAL_DATA_MARKERS.includes(line)) {
-      isData = true;
+    if (INITIAL_DATA_MARKERS.includes(line.replace(/[\n\s]/g, ""))) {
+      foundData = true;
       rawData += line.replace(/[\n\s]/g, "");
     } else if (line === "}" || line === "},") {
-      isData = false;
+      foundData = false;
 
       const parsedResult = parseCHIPResultToJSON(rawData);
       results.push(parsedResult);
@@ -190,10 +195,14 @@ export const resultParser = (result: string): CHIPParsedResult => {
   return results;
 };
 
-export const filterLogs = (logs: CHIPWSMessage["logs"]): CHIPWSMessage["logs"] => {
+export const filterLogs = (
+  logs: CHIPWSMessage["logs"],
+): CHIPWSMessage["logs"] => {
   return logs.filter((log) => log.module === "DMG");
 };
 
 export const decodeLogs = (logs: CHIPWSMessage["logs"]): string => {
-  return logs.map((log) => Buffer.from(log.message, "base64").toString()).join("\n")
-}
+  return logs
+    .map((log) => Buffer.from(log.message, "base64").toString())
+    .join("\n");
+};
