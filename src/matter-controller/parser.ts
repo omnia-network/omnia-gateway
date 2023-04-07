@@ -1,10 +1,10 @@
-import type { CHIPData, CHIPParsedResult, CHIPValue } from "../models";
+import type { CHIPData, CHIPParsedResult, CHIPValue, CHIPWSMessage } from "../models";
 
-export const serializeResult = (result: CHIPParsedResult) => {
+export const serializeResult = (result: CHIPParsedResult): string => {
   return JSON.stringify(result, null, 2);
 };
 
-const splitAtFirstChar = (toSplit: string, char: string) => {
+const splitAtFirstChar = (toSplit: string, char: string): Array<string> => {
   const charIndex = toSplit.indexOf(char); // Find the index of the first char
 
   if (charIndex === -1) {
@@ -169,33 +169,31 @@ export const resultParser = (result: string): CHIPParsedResult => {
   const results: CHIPParsedResult = [];
 
   for (const line of result.split("\n")) {
-    const lineContent = line.split("CHIP:DMG: ");
-    if (lineContent.length > 1) {
-      if (isData) {
-        rawData += lineContent[1].replace(/[\n\s]/g, "");
-      }
+    if (isData) {
+      rawData += line.replace(/[\n\s]/g, "");
+    }
 
-      // check if this line contains one of the initial data markers
-      if (INITIAL_DATA_MARKERS.includes(lineContent[1])) {
-        isData = true;
-        rawData += lineContent[1].replace(/[\n\s]/g, "");
-      } else if (lineContent[1] === "}" || lineContent[1] === "},") {
-        isData = false;
+    // check if this line contains one of the initial data markers
+    if (INITIAL_DATA_MARKERS.includes(line)) {
+      isData = true;
+      rawData += line.replace(/[\n\s]/g, "");
+    } else if (line === "}" || line === "},") {
+      isData = false;
 
-        const parsedResult = parseCHIPResultToJSON(rawData);
-        results.push(parsedResult);
+      const parsedResult = parseCHIPResultToJSON(rawData);
+      results.push(parsedResult);
 
-        rawData = "";
-      }
+      rawData = "";
     }
   }
 
   return results;
 };
 
-export const filterOutput = (output: string) => {
-  return output
-    .split("\n")
-    .filter((line) => line.includes("CHIP:DMG: "))
-    .join("\n");
+export const filterLogs = (logs: CHIPWSMessage["logs"]): CHIPWSMessage["logs"] => {
+  return logs.filter((log) => log.module === "DMG");
 };
+
+export const decodeLogs = (logs: CHIPWSMessage["logs"]): string => {
+  return logs.map((log) => Buffer.from(log.message, "base64").toString()).join("\n")
+}
