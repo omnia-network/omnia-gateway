@@ -3,8 +3,8 @@ import fetch from "node-fetch";
 import { ENV_VARIABLES } from "../../constants/environment.js";
 
 // Imports and re-exports candid interface
-import { idlFactory } from './omnia_backend.did.js';
-export { idlFactory } from './omnia_backend.did.js';
+import { idlFactory } from "./omnia_backend.did.js";
+export { idlFactory } from "./omnia_backend.did.js";
 // CANISTER_ID is replaced by webpack based on node environment
 export const canisterId = ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID;
 
@@ -14,11 +14,13 @@ export const canisterId = ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID;
  * @return {import("@dfinity/agent").ActorSubclass<import("./omnia_backend.did")._SERVICE>}
  */
 export const createActor = (canisterId, options = {}) => {
-  const agent = options.agent || new HttpAgent({
-    ...options.agentOptions,
-    fetch: fetch,
-    host: ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
-  });
+  const agent =
+    options.agent ||
+    new HttpAgent({
+      ...options.agentOptions,
+      fetch: fetch,
+      host: ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
+    });
 
   // Fetch root key for certificate validation during development
   if (ENV_VARIABLES.DFX_NETWORK !== "ic") {
@@ -27,7 +29,8 @@ export const createActor = (canisterId, options = {}) => {
     if (ENV_VARIABLES.OMNIA_BACKEND_ROOT_KEY_HEX) {
       agent.rootKey = fromHex(ENV_VARIABLES.OMNIA_BACKEND_ROOT_KEY_HEX);
     } else {
-      agent.fetchRootKey()
+      agent
+        .fetchRootKey()
         // uncomment the following block to print the local root key. Paste it in the OMNIA_BACKEND_ROOT_KEY_HEX env variable
         // .then((root_key) => {
         //   console.log([...new Uint8Array(root_key)]
@@ -35,12 +38,13 @@ export const createActor = (canisterId, options = {}) => {
         //     .join('')
         //   )
         // })
-        .catch(err => {
-          console.warn("Unable to fetch root key. Check to ensure that your local replica is running");
+        .catch((err) => {
+          console.warn(
+            "Unable to fetch root key. Check to ensure that your local replica is running",
+          );
           console.error(err);
         });
     }
-
   }
 
   // Creates an actor with using the candid interface and the HttpAgent

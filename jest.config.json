@@ -1,17 +1,10 @@
 {
   "testEnvironment": "node",
-  "moduleFileExtensions": [
-    "ts",
-    "tsx",
-    "js",
-    "jsx",
-    "json",
-    "node"
-  ],
+  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
   "moduleNameMapper": {
     "^(\\.{1,2}/.*)\\.js$": "$1"
   },
-  "testRegex": "\/__tests__\/(.*(\\.|)(test|spec))\\.ts$",
+  "testRegex": "/__tests__/(.*(\\.|)(test|spec))\\.ts$",
   "coverageDirectory": "coverage",
   "collectCoverageFrom": [
     "src/**/*.{ts,tsx,js,jsx}",
