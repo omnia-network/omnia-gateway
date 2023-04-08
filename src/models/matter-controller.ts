@@ -12,7 +12,7 @@ export type CHIPWSLog = {
   /**
    * The CHIP module that generated the log
    */
-  module: "TOO" | "CSM" | "DIS" | "DMG" | "EM" | "IN";
+  module: "TOO" | "CSM" | "DIS" | "DMG" | "EM" | "IN" | "SPT";
   category: "Info" | "Debug" | "Error";
   /**
    * The log message, `base64` encoded
