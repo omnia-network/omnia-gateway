@@ -6,7 +6,11 @@ import bindingHttp from "@node-wot/binding-http";
 // import { omnia_backend } from "./canisters/omnia_backend/index.js";
 import { MatterController } from "./matter-controller/controller.js";
 import { ENV_VARIABLES } from "./constants/environment.js";
-import { IdentifyCluster, OnOffCluster } from "@project-chip/matter.js";
+import {
+  // IdentifyCluster,
+  OnOffCluster
+} from "@project-chip/matter.js";
+// TODO: fix types for these imports
 import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
@@ -51,13 +55,13 @@ servient.start().then(async (WoT) => {
     ENV_VARIABLES.WIFI_PASSWORD,
   );
 
-  await matterController.sendCommand(
-    new ClusterId(IdentifyCluster.id),
-    IdentifyCluster.commands.identify.requestId,
-    {"0x0": "10"},
-    deviceNodeId,
-    new EndpointNumber(1),
-  );
+  // await matterController.sendCommand(
+  //   new ClusterId(IdentifyCluster.id),
+  //   IdentifyCluster.commands.identify.requestId,
+  //   {"0x0": "u:10"},
+  //   deviceNodeId,
+  //   new EndpointNumber(1),
+  // );
 
   await matterController.sendCommand(
     new ClusterId(OnOffCluster.id),
