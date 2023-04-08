@@ -5,9 +5,10 @@ import type {
   CHIPWSMessage,
 } from "../models";
 
-export const serializeResult = (result: CHIPParsedResult): string => {
-  return JSON.stringify(result, null, 2);
-};
+// The CHIP tool sends a lot of messages that are not useful for us
+// We only want to parse the messages that contain data
+// The data messages start with one of these strings
+const INITIAL_DATA_MARKERS = ["InvokeResponseMessage=", "ReportDataMessage="];
 
 const splitAtFirstChar = (toSplit: string, char: string): Array<string> => {
   const charIndex = toSplit.indexOf(char); // Find the index of the first char
@@ -87,7 +88,9 @@ const parseCHIPResultToJSON = (
     }
 
     if (arrayToFill !== null) {
-      arrayToFill.push(parseCHIPResultToJSON(value.slice(1, index - 1)));
+      arrayToFill.push({
+        [key]: parseCHIPResultToJSON(value.slice(1, index - 1)),
+      });
     } else {
       parsedJSON[key] = parseCHIPResultToJSON(value.slice(1, index - 1));
     }
@@ -125,30 +128,32 @@ const parseCHIPResultToJSON = (
     }
 
     const arrayContent = value.slice(1, index - 1);
+    parsedJSON[key] = [];
 
-    if (arrayContent === "") {
-      parsedJSON[key] = [];
-    } else if (
-      arrayContent
-        .split(",")
-        .filter((el) => !!el)
-        .filter((element) => !element.startsWith("0x")).length === 0
-    ) {
-      parsedJSON[key] = arrayContent
-        .split(",")
-        .map((element) => parseScalarValue(element));
-    } else {
-      parsedJSON[key] = [];
-      parseCHIPResultToJSON(
-        value.slice(1, index - 1),
-        parsedJSON[key] as Array<unknown>,
-      );
-
-      if (value[index] === "," && value.slice(index + 1) !== "") {
-        Object.assign(
-          parsedJSON,
-          parseCHIPResultToJSON(value.slice(index + 1)),
+    if (arrayContent !== "") {
+      if (
+        arrayContent
+          .split(",")
+          .filter((el) => !!el)
+          .filter((element) => !element.startsWith("0x")).length === 0
+      ) {
+        // TODO: improve the logic here to handle any type of array values
+        parsedJSON[key] = arrayContent
+          .split(",")
+          .map((element) => parseScalarValue(element));
+      } else {
+        parsedJSON[key] = [];
+        parseCHIPResultToJSON(
+          value.slice(1, index - 1),
+          parsedJSON[key] as Array<unknown>,
         );
+
+        if (value[index] === "," && value.slice(index + 1) !== "") {
+          Object.assign(
+            parsedJSON,
+            parseCHIPResultToJSON(value.slice(index + 1)),
+          );
+        }
       }
     }
   } else {
@@ -165,15 +170,32 @@ const parseCHIPResultToJSON = (
   return parsedJSON;
 };
 
-const INITIAL_DATA_MARKERS = ["InvokeResponseMessage=", "ReportDataMessage="];
+const filterLogs = (logs: CHIPWSMessage["logs"]): CHIPWSMessage["logs"] => {
+  return logs.filter((log) => log.module === "DMG");
+};
 
-export const resultParser = (result: string): CHIPParsedResult => {
+const decodeLogLine = (log: CHIPWSMessage["logs"][number]): string => {
+  return Buffer.from(log.message, "base64").toString();
+};
+
+/**
+ * Parses a CHIP WebSocket message and returns the parsed result
+ * @param chipMessage the parsed CHIP WebSocket message (use {@link parseCHIPWSMessage} to parse the raw message from the WebSocket)
+ * @returns {CHIPParsedResult} the parsed result containing the data
+ */
+export const parseCHIPMessage = (
+  chipMessage: CHIPWSMessage,
+): CHIPParsedResult => {
+  const dataLogs = filterLogs(chipMessage.logs);
+
   let foundData = false;
   let rawData = "";
 
   const results: CHIPParsedResult = [];
 
-  for (const line of result.split("\n")) {
+  for (const logLine of dataLogs) {
+    const line = decodeLogLine(logLine);
+
     if (foundData) {
       rawData += line.replace(/[\n\s]/g, "");
     }
@@ -195,14 +217,11 @@ export const resultParser = (result: string): CHIPParsedResult => {
   return results;
 };
 
-export const filterLogs = (
-  logs: CHIPWSMessage["logs"],
-): CHIPWSMessage["logs"] => {
-  return logs.filter((log) => log.module === "DMG");
-};
-
-export const decodeLogs = (logs: CHIPWSMessage["logs"]): string => {
-  return logs
-    .map((log) => Buffer.from(log.message, "base64").toString())
-    .join("\n");
+/**
+ * Parses a raw websocket message into a `CHIPWSMessage`
+ * @param message the raw message received from the websocket
+ * @returns {CHIPWSMessage} the parsed message
+ */
+export const parseWebSocketMessage = (message: string): CHIPWSMessage => {
+  return JSON.parse(message);
 };

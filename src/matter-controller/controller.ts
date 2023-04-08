@@ -1,18 +1,11 @@
 import { ChildProcess, spawn } from "child_process";
 import WebSocket from "ws";
-import { decodeLogs, filterLogs, resultParser } from "./parser.js";
-import {
-  CHIPGenericCommandId,
-  CHIPParsedResult,
-  CHIPWSMessage,
-} from "../models";
+import { parseWebSocketMessage, parseCHIPMessage } from "./parser.js";
+import { CHIPGenericCommandId, CHIPParsedResult } from "../models";
 import { ClusterId } from "@project-chip/matter.js/dist/dts/common/ClusterId";
 import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
 import { EndpointNumber } from "@project-chip/matter.js/dist/dts/common/EndpointNumber";
-import {
-  getMatterControllerFileTransport,
-  matterControllerLogger,
-} from "../services/logger.js";
+import { matterControllerLogger } from "../services/logger.js";
 
 export class MatterController {
   chipWsPort: number;
@@ -41,17 +34,17 @@ export class MatterController {
 
     return new Promise((resolve, reject) => {
       this.chipToolProcess.on("spawn", () => {
-        console.log("chip-tool spawned");
+        matterControllerLogger.info("chip-tool spawned");
       });
 
       this.chipToolProcess.stdout.on("data", (message) => {
         // we should not need this, as we are using the WebSocket
         // and messages are already streamed there
-        console.log("chip-tool stdout", message.toString());
+        matterControllerLogger.debug(`chip-tool stdout: ${message.toString()}`);
 
         if (message.toString().includes("LWS_CALLBACK_EVENT_WAIT_CANCELLED")) {
           if (!this.isChipToolRunning) {
-            console.log("Matter controller started");
+            matterControllerLogger.info("Matter controller started");
             this.isChipToolRunning = true;
           }
 
@@ -59,32 +52,40 @@ export class MatterController {
             this.chipWs = new WebSocket(`ws://localhost:${this.chipWsPort}`);
 
             this.chipWs.onopen = (): void => {
-              console.log("WS opened");
+              matterControllerLogger.info("WS opened");
               resolve();
             };
 
             this.chipWs.onclose = (): void => {
-              console.log("WS closed");
+              matterControllerLogger.info("WS closed");
             };
 
             this.chipWs.onerror = (error): void => {
-              console.log("WS error", error);
+              matterControllerLogger.error(
+                `WS error ${error.message}`,
+                error.error,
+              );
             };
           }
         }
       });
 
       this.chipToolProcess.stderr.on("data", (message) => {
-        console.log("chip-tool stderr", message.toString());
+        matterControllerLogger.error(`chip-tool stderr: ${message.toString()}`);
       });
 
       this.chipToolProcess.on("error", (error) => {
-        console.log("chip-tool error", error);
+        matterControllerLogger.error(
+          `chip-tool error: ${error.message}`,
+          error,
+        );
         reject(error);
       });
 
       this.chipToolProcess.on("exit", (code, signal) => {
-        console.log("chip-tool exit", code, signal);
+        matterControllerLogger.info(
+          `chip-tool exit: code:${code} signal:${signal}`,
+        );
       });
     });
   }
@@ -102,7 +103,7 @@ export class MatterController {
 
       this.chipWs.close();
 
-      console.log("Matter controller stopped");
+      matterControllerLogger.info("Matter controller stopped");
     }
   }
 
@@ -129,7 +130,7 @@ export class MatterController {
 
     const messageToSend = `any command-by-id ${cluster.id} ${commandId} '${payload}' ${nodeId.id} ${endpointId.number}`;
 
-    console.log("sending message", messageToSend);
+    matterControllerLogger.debug(`sending message: ${messageToSend}`);
 
     return new Promise((resolve, reject) => {
       this.chipWs.send(messageToSend);
@@ -152,27 +153,25 @@ export class MatterController {
     reject: (e: Error) => void,
     event: WebSocket.MessageEvent,
   ): void {
-    const parsedMessage = JSON.parse(event.data.toString()) as CHIPWSMessage;
+    const parsedMessage = parseWebSocketMessage(event.data.toString());
 
-    const dataLogs = filterLogs(parsedMessage.logs);
-    if (dataLogs.length === 0) {
-      console.log("no data logs", parsedMessage.logs);
-      reject(new Error("no data logs"));
+    const result = parseCHIPMessage(parsedMessage);
+
+    if (Object.keys(result).length === 0) {
+      matterControllerLogger.error(
+        `commandCallback: cluster:${cluster.id} commandId:${commandId} result is empty`,
+      );
+      reject(new Error("Command result is empty"));
       return;
     }
 
-    const data = decodeLogs(dataLogs);
-    if (!data) {
-      console.log("no data to parse", dataLogs);
-      reject(new Error("no data to parse"));
-      return;
-    }
-
-    console.log("data", data);
-
-    const result = resultParser(data);
-
-    this.log(`${Date.now()}-${cluster.id}-${commandId}`, "info", result);
+    matterControllerLogger.debug(
+      `commandCallback: cluster:${cluster.id} commandId:${commandId}`,
+      result,
+    );
+    matterControllerLogger.info(
+      `Command success: cluster:${cluster.id} commandId:${commandId}`,
+    );
 
     resolve(result);
 
@@ -188,7 +187,10 @@ export class MatterController {
     reject: (e: Error) => void,
     error: WebSocket.ErrorEvent,
   ): void {
-    console.log("commandErrorCallback", cluster, error.error);
+    matterControllerLogger.error(
+      `commandErrorCallback: cluster:${cluster.id} commandId:${commandId} error:${error.message}`,
+      error.error,
+    );
 
     reject(error.error);
 
@@ -196,12 +198,5 @@ export class MatterController {
       "error",
       this.commandErrorCallback.bind(this, cluster, commandId, reject),
     );
-  }
-
-  private log(filename: string, level: string, message: unknown): void {
-    const fileLogger = getMatterControllerFileTransport(filename);
-    matterControllerLogger.add(fileLogger);
-    matterControllerLogger.log(level, message);
-    matterControllerLogger.remove(fileLogger);
   }
 }

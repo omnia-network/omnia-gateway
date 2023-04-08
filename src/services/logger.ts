@@ -1,21 +1,30 @@
-import winston from "winston";
+import { format, transports, createLogger } from "winston";
 
 const LOGS_PATH = `${process.cwd()}/logs`;
 
-export const matterControllerLogger = winston.createLogger({
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.printf((info) => {
-      return `${info.timestamp} ${info.level}: ${info.message}`;
-    }),
-  ),
-  transports: [new winston.transports.Console()],
+const logFormat = format.printf((info) => {
+  return `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`;
 });
 
-export const getMatterControllerFileTransport = (
-  filename: string,
-): winston.transports.FileTransportInstance => {
-  return new winston.transports.File({
-    filename: `${LOGS_PATH}/${filename}.log`,
-  });
-};
+export const matterControllerLogger = createLogger({
+  format: format.combine(
+    format.label({ label: "gateway" }),
+    format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    // Format the metadata object
+    format.metadata({ fillExcept: ["message", "level", "timestamp", "label"] }),
+  ),
+  level: "debug",
+  transports: [
+    new transports.Console({
+      format: format.combine(format.colorize(), logFormat),
+    }),
+    new transports.File({
+      filename: `${LOGS_PATH}/${new Date().toISOString()}.log`,
+      format: format.combine(
+        // format.json(),
+        // prettyPrint() can make the logs hard to query when they are big
+        format.prettyPrint(),
+      ),
+    }),
+  ],
+});
