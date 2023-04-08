@@ -44,34 +44,40 @@ servient.start().then(async (WoT) => {
     ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
   );
 
-  await matterController.start();
+  try {
+    await matterController.start();
+  
+    const deviceNodeId = new NodeId(BigInt(1));
+  
+    await matterController.pairDevice(
+      deviceNodeId,
+      "MT:Y.K9042C00KA0648G00",
+      ENV_VARIABLES.WIFI_SSID,
+      ENV_VARIABLES.WIFI_PASSWORD,
+    );
+  
+    // await matterController.sendCommand(
+    //   new ClusterId(IdentifyCluster.id),
+    //   IdentifyCluster.commands.identify.requestId,
+    //   {"0x0": "u:10"},
+    //   deviceNodeId,
+    //   new EndpointNumber(1),
+    // );
+  
+    await matterController.sendCommand(
+      new ClusterId(OnOffCluster.id),
+      OnOffCluster.commands.on.requestId,
+      {},
+      deviceNodeId,
+      new EndpointNumber(1),
+    );
+  
+    await matterController.unpairDevice(deviceNodeId);
+  
+    await matterController.stop();
+  } catch (error) {
+    console.error(error);
+    await matterController.stop();
+  }
 
-  const deviceNodeId = new NodeId(BigInt(1));
-
-  await matterController.pairDevice(
-    deviceNodeId,
-    "MT:Y.K9042C00KA0648G00",
-    ENV_VARIABLES.WIFI_SSID,
-    ENV_VARIABLES.WIFI_PASSWORD,
-  );
-
-  // await matterController.sendCommand(
-  //   new ClusterId(IdentifyCluster.id),
-  //   IdentifyCluster.commands.identify.requestId,
-  //   {"0x0": "u:10"},
-  //   deviceNodeId,
-  //   new EndpointNumber(1),
-  // );
-
-  await matterController.sendCommand(
-    new ClusterId(OnOffCluster.id),
-    OnOffCluster.commands.on.requestId,
-    {},
-    deviceNodeId,
-    new EndpointNumber(1),
-  );
-
-  await matterController.unpairDevice(deviceNodeId);
-
-  await matterController.stop();
 });
