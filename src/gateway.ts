@@ -47,14 +47,22 @@ servient.start().then(async (WoT) => {
   try {
     await matterController.start();
   
-    const deviceNodeId = new NodeId(BigInt(1));
+    const lightNodeId = new NodeId(BigInt(1));
+    // const switchNodeId = new NodeId(BigInt(2));
   
-    await matterController.pairDevice(
-      deviceNodeId,
-      "MT:Y.K9042C00KA0648G00",
-      ENV_VARIABLES.WIFI_SSID,
-      ENV_VARIABLES.WIFI_PASSWORD,
-    );
+    // await matterController.pairDevice(
+    //   lightNodeId,
+    //   "MT:Y.K9042C00KA0648G00",
+    //   ENV_VARIABLES.WIFI_SSID,
+    //   ENV_VARIABLES.WIFI_PASSWORD,
+    // );
+
+    // await matterController.pairDevice(
+    //   switchNodeId,
+    //   "MT:Y.K9042C00KA0648G00",
+    //   ENV_VARIABLES.WIFI_SSID,
+    //   ENV_VARIABLES.WIFI_PASSWORD,
+    // );
   
     // await matterController.sendCommand(
     //   new ClusterId(IdentifyCluster.id),
@@ -66,13 +74,39 @@ servient.start().then(async (WoT) => {
   
     await matterController.sendCommand(
       new ClusterId(OnOffCluster.id),
-      OnOffCluster.commands.on.requestId,
+      OnOffCluster.commands.toggle.requestId,
       {},
-      deviceNodeId,
+      lightNodeId,
       new EndpointNumber(1),
     );
+
+    const attr = await matterController.readAttribute(
+      new ClusterId(OnOffCluster.id),
+      OnOffCluster.attributes.onOff,
+      lightNodeId,
+      new EndpointNumber(1),
+    );
+
+    console.log(attr);
+
+    await matterController.sendCommand(
+      new ClusterId(OnOffCluster.id),
+      OnOffCluster.commands.toggle.requestId,
+      {},
+      lightNodeId,
+      new EndpointNumber(1),
+    );
+
+    const attr2 = await matterController.readAttribute(
+      new ClusterId(OnOffCluster.id),
+      OnOffCluster.attributes.onOff,
+      lightNodeId,
+      new EndpointNumber(1),
+    );
+
+    console.log(attr2);
   
-    await matterController.unpairDevice(deviceNodeId);
+    // await matterController.unpairDevice(deviceNodeId);
   
     await matterController.stop();
   } catch (error) {
