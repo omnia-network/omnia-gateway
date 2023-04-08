@@ -8,7 +8,7 @@ const logFormat = format.printf((info) => {
 
 export const matterControllerLogger = createLogger({
   format: format.combine(
-    format.label({ label: "gateway" }),
+    format.label({ label: "matter-controller" }),
     format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     // Format the metadata object
     format.metadata({ fillExcept: ["message", "level", "timestamp", "label"] }),
