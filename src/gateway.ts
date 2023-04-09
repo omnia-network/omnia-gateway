@@ -1,4 +1,4 @@
-// import { LightSensor } from "./thngs/light-sensor.js";
+import { WotDevice } from "./thngs/wot-device.js";
 // import { MotionSensor } from "./thngs/motion-sensor.js";
 // import { LightActuator } from "./thngs/light-actuator.js";
 import http from "http";
@@ -18,12 +18,12 @@ import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 
 const WEB_SERVER_PORT = 3000;
 const WOT_SERVIENT_PORT = 8888;
-
-// const TD_DIRECTORY_URI = "";    // can register generated TD to a TD directory
+const TD_DIRECTORY_URI = "";
 
 export class OmniaGateway {
   private _icAgent: http.Server;
   private _wotServient: Servient;
+  private _wotNamespace: typeof WoT;
   // private _matterController: MatterController;
 
   constructor() {
@@ -38,7 +38,7 @@ export class OmniaGateway {
           body += chunk.toString();
         });
 
-        req.on("end", () => {
+        req.on("end", async () => {
           try {
             const requestBody = JSON.parse(body);
             switch (requestBody.command) {
@@ -49,7 +49,46 @@ export class OmniaGateway {
                   nodeId: deviceNodeId,
                   ...requestBody,
                 };
-                this.pairDevice(pairingInfo);
+                await this.pairDevice(pairingInfo);
+
+                // TODO: get device info and use it to create TM
+                const thingModel = {
+                  "@context": [
+                    "https://www.w3.org/2019/wot/td/v1",
+                    { "@language": "en" },
+                  ],
+                  "@type": "",
+                  id: "new:thing",
+                  title: "omnia_thing",
+                  description: "",
+                  securityDefinitions: {
+                    "": {
+                      scheme: "nosec",
+                    },
+                  },
+                  security: "",
+                  properties: {
+                    myProperty: {
+                      title: "A short title for User Interfaces",
+                      description:
+                        "A longer string for humans to read and understand",
+                      unit: "",
+                      type: "string",
+                    },
+                  },
+                  actions: {
+                    myAction: {
+                      title: "A short title for User Interfaces",
+                      description:
+                        "A longer string for humans to read and understand",
+                      input: {
+                        unit: "",
+                        type: "boolean",
+                      },
+                    },
+                  },
+                };
+                this.exposeThing(thingModel);
 
                 res.writeHead(200, { "Content-Type": "text/plain" });
                 res.write("Device paired");
@@ -89,6 +128,7 @@ export class OmniaGateway {
     this._wotServient.addServer(
       new bindingHttp.HttpServer({ port: WOT_SERVIENT_PORT }),
     );
+    this._wotNamespace = await this._wotServient.start();
 
     // await this._matterController.start();
   }
@@ -101,6 +141,17 @@ export class OmniaGateway {
     //   ENV_VARIABLES.WIFI_SSID,
     //   ENV_VARIABLES.WIFI_PASSWORD,
     // );
+
+    // TODO: get device info e return it
+  }
+
+  private async exposeThing(thingModel) {
+    const device = new WotDevice(
+      this._wotNamespace,
+      thingModel,
+      TD_DIRECTORY_URI,
+    );
+    await device.startDevice();
   }
 }
 

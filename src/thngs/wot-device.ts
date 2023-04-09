@@ -1,49 +1,29 @@
 import * as WoT from "wot-typescript-definitions";
 import fetch from "node-fetch";
 
-export class LightSensor {
+export class WotDevice {
   public thing: WoT.ExposedThing;
   public deviceWoT: typeof WoT;
   public td: WoT.ExposedThingInit;
 
-  private thingModel: WoT.ExposedThingInit = {
-    "@context": ["https://www.w3.org/2019/wot/td/v1", { "@language": "en" }],
-    "@type": "",
-    id: "new:light-sensor",
-    title: "light-sensor",
-    description: "",
-    securityDefinitions: {
-      "": {
-        scheme: "nosec",
-      },
-    },
-    security: "",
-    properties: {
-      brightness: {
-        title: "Brightness",
-        description: "Brightness level in the room",
-        unit: "lumen",
-        type: "number",
-        readOnly: true,
-      },
-    },
-  };
-
+  private thingModel: WoT.ExposedThingInit;
   private tdDirectory: string;
 
-  private brightness: WoT.InteractionInput;
-
-  constructor(deviceWoT: typeof WoT, tdDirectory?: string) {
+  constructor(
+    deviceWoT: typeof WoT,
+    thingModel: WoT.ExposedThingInit,
+    tdDirectory?: string,
+  ) {
     this.deviceWoT = deviceWoT;
+    this.thingModel = thingModel;
     if (tdDirectory) this.tdDirectory = tdDirectory;
   }
 
   public async startDevice() {
-    const exposedThing = await this.deviceWoT.produce(this.thingModel);
-
-    this.thing = exposedThing;
-    this.td = exposedThing.getThingDescription();
+    this.thing = await this.deviceWoT.produce(this.thingModel);
+    this.td = this.thing.getThingDescription();
     this.initializeProperties();
+    this.initializeActions();
 
     await this.thing.expose();
     console.log("Exposed Thing:", this.thingModel.title);
@@ -84,9 +64,32 @@ export class LightSensor {
   }
 
   private initializeProperties() {
-    this.brightness = 10;
-    this.thing.setPropertyReadHandler("brightness", async (_options) => {
-      return this.brightness;
+    this.thing.setPropertyReadHandler("myProperty", this.myPropertyReadHandler);
+  }
+
+  private initializeActions() {
+    this.thing.setActionHandler("myAction", async (inputData) => {
+      return this.myActionHandler(inputData);
     });
+  }
+
+  private async myPropertyReadHandler(_options?: WoT.InteractionOptions) {
+    console.log("Reading property");
+    // read sensor value
+    return "Sensor value";
+  }
+
+  private async myActionHandler(
+    inputData?: WoT.InteractionOutput,
+    _options?: WoT.InteractionOptions,
+  ) {
+    let dataValue: WoT.DataSchemaValue;
+    if (inputData) {
+      dataValue = await inputData.value();
+    }
+
+    console.log("Action:", dataValue);
+
+    return "Action executed";
   }
 }
