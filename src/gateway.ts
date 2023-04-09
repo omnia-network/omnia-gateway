@@ -43,7 +43,8 @@ export class OmniaGateway {
             const requestBody = JSON.parse(body);
             switch (requestBody.command) {
               case "pair": {
-                const deviceNodeId = new NodeId(BigInt(1));
+                const randomId = Math.floor(Math.random() * 255);
+                const deviceNodeId = new NodeId(BigInt(randomId));
                 delete requestBody.command;
                 const pairingInfo = {
                   nodeId: deviceNodeId,
@@ -58,8 +59,8 @@ export class OmniaGateway {
                     { "@language": "en" },
                   ],
                   "@type": "",
-                  id: "new:thing",
-                  title: "omnia_thing",
+                  id: `new:${randomId}`,
+                  title: `${randomId}`,
                   description: "",
                   securityDefinitions: {
                     "": {
