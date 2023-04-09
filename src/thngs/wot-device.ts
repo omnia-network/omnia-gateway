@@ -64,22 +64,38 @@ export class WotDevice {
   }
 
   private initializeProperties() {
-    this.thing.setPropertyReadHandler("myProperty", this.myPropertyReadHandler);
+    if (typeof this.td.properties === "object") {
+      for (const [property, _info] of Object.entries(this.td.properties)) {
+        console.log(
+          "Registered default property read handler for: ",
+          property,
+          _info,
+        );
+        this.thing.setPropertyReadHandler(
+          `${property}`,
+          this.defaultPropertyReadHandler,
+        );
+      }
+    }
   }
 
   private initializeActions() {
-    this.thing.setActionHandler("myAction", async (inputData) => {
-      return this.myActionHandler(inputData);
-    });
+    if (typeof this.td.actions === "object") {
+      for (const [action, _info] of Object.entries(this.td.actions)) {
+        console.log("Registered default action handler for: ", action, _info);
+        this.thing.setActionHandler(`${action}`, async (inputData) =>
+          this.defaultActionHandler(inputData),
+        );
+      }
+    }
   }
 
-  private async myPropertyReadHandler(_options?: WoT.InteractionOptions) {
-    console.log("Reading property");
-    // read sensor value
-    return "Sensor value";
+  private async defaultPropertyReadHandler(_options?: WoT.InteractionOptions) {
+    console.log("Default property");
+    return "Default property";
   }
 
-  private async myActionHandler(
+  private async defaultActionHandler(
     inputData?: WoT.InteractionOutput,
     _options?: WoT.InteractionOptions,
   ) {
@@ -90,6 +106,6 @@ export class WotDevice {
 
     console.log("Action:", dataValue);
 
-    return "Action executed";
+    return "Default action";
   }
 }

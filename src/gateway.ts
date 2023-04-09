@@ -69,7 +69,7 @@ export class OmniaGateway {
                   },
                   security: "",
                   properties: {
-                    myProperty: {
+                    switch: {
                       title: "A short title for User Interfaces",
                       description:
                         "A longer string for humans to read and understand",
@@ -78,7 +78,7 @@ export class OmniaGateway {
                     },
                   },
                   actions: {
-                    myAction: {
+                    light: {
                       title: "A short title for User Interfaces",
                       description:
                         "A longer string for humans to read and understand",
@@ -158,29 +158,10 @@ export class OmniaGateway {
 
 // // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/ban-ts-comment
 // // @ts-ignore
-// servient.start().then(async (WoT) => {
-// const lightSensor = new LightSensor(WoT, TD_DIRECTORY_URI);
-// await lightSensor.startDevice();
-
-// const motionSensor = new MotionSensor(WoT, TD_DIRECTORY_URI);
-// await motionSensor.startDevice();
-
-// const lightActuator = new LightActuator(WoT, TD_DIRECTORY_URI);
-// await lightActuator.startDevice();
-
 // // console.log(omnia_backend);
 // console.log(await omnia_backend.initGateway());
 
 // try {
-//   const deviceNodeId = new NodeId(BigInt(1));
-
-//   await matterController.pairDevice(
-//     deviceNodeId,
-//     "MT:Y.K9042C00KA0648G00",
-//     ENV_VARIABLES.WIFI_SSID,
-//     ENV_VARIABLES.WIFI_PASSWORD,
-//   );
-
 //   // await matterController.sendCommand(
 //   //   new ClusterId(IdentifyCluster.id),
 //   //   IdentifyCluster.commands.identify.requestId,
@@ -204,5 +185,4 @@ export class OmniaGateway {
 //   console.error(error);
 //   await matterController.stop();
 // }
-
 // });
