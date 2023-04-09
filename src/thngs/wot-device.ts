@@ -1,6 +1,10 @@
 import * as WoT from "wot-typescript-definitions";
 import fetch from "node-fetch";
-import { MatterController } from "../matter-controller/controller";
+import { MatterController } from "../matter-controller/controller.js";
+import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
+import { OnOffCluster } from "@project-chip/matter.js/dist/cjs/cluster/OnOffCluster.js";
+import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
+import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
 
 export class WotDevice {
   public thing: WoT.ExposedThing;
@@ -10,16 +14,19 @@ export class WotDevice {
   private thingModel: WoT.ExposedThingInit;
   private tdDirectory: string;
   private matterController: MatterController;
+  private nodeId: NodeId;
 
   constructor(
     deviceWoT: typeof WoT,
     thingModel: WoT.ExposedThingInit,
     matterController: MatterController,
+    nodeId: NodeId,
     tdDirectory?: string,
   ) {
     this.deviceWoT = deviceWoT;
     this.thingModel = thingModel;
     this.matterController = matterController;
+    this.nodeId = nodeId;
     if (tdDirectory) this.tdDirectory = tdDirectory;
   }
 
@@ -107,15 +114,16 @@ export class WotDevice {
     if (inputData) {
       dataValue = await inputData.value();
     }
-    // this.matterController.sendCommand(
-    //     new ClusterId(OnOffCluster.id),
-    //     OnOffCluster.commands.on.requestId,
-    //     {},
-    //     deviceNodeId,
-    //     new EndpointNumber(1),
-    //   );
     console.log("Action:", dataValue);
 
-    return "Default action";
+    const commandResult = await this.matterController.sendCommand(
+      new ClusterId(OnOffCluster.id),
+      (dataValue as any).command,
+      {},
+      this.nodeId,
+      new EndpointNumber(1),
+    );
+
+    return commandResult;
   }
 }

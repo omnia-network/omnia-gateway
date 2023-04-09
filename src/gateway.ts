@@ -69,27 +69,21 @@ export class OmniaGateway {
                   },
                   security: "",
                   properties: {
-                    switch: {
-                      title: "A short title for User Interfaces",
+                    onoff: {
+                      title: "OnOff Matter Cluster Attributes",
                       description:
-                        "A longer string for humans to read and understand",
-                      unit: "",
-                      type: "string",
+                        "Implementation of the OnOff Matter Cluster Attributes",
                     },
                   },
                   actions: {
-                    light: {
-                      title: "A short title for User Interfaces",
+                    onoff: {
+                      title: "OnOff Matter Cluster Commands",
                       description:
-                        "A longer string for humans to read and understand",
-                      input: {
-                        unit: "",
-                        type: "boolean",
-                      },
+                        "Implementation of the OnOff Matter Cluster Commands",
                     },
                   },
                 };
-                this.exposeThing(thingModel);
+                this.exposeThing(thingModel, deviceNodeId);
 
                 res.writeHead(200, { "Content-Type": "text/plain" });
                 res.write("Device paired");
@@ -103,8 +97,9 @@ export class OmniaGateway {
               }
             }
           } catch (err) {
-            res.writeHead(400, { "Content-Type": "text/plain" });
-            res.write("Invalid body");
+            console.error(err);
+            res.writeHead(500, { "Content-Type": "text/plain" });
+            res.write("Internal error");
             res.end();
           }
         });
@@ -122,6 +117,8 @@ export class OmniaGateway {
   }
 
   async start() {
+    await this._matterController.start();
+
     this._icAgent.listen(WEB_SERVER_PORT, () => {
       console.log(`Server running on port ${WEB_SERVER_PORT}`);
     });
@@ -130,27 +127,26 @@ export class OmniaGateway {
       new bindingHttp.HttpServer({ port: WOT_SERVIENT_PORT }),
     );
     this._wotNamespace = await this._wotServient.start();
-
-    // await this._matterController.start();
   }
 
   private async pairDevice(pairingInfo) {
     console.log(pairingInfo);
-    // await this._matterController.pairDevice(
-    //   pairingInfo.nodeId,
-    //   pairingInfo.payload,
-    //   ENV_VARIABLES.WIFI_SSID,
-    //   ENV_VARIABLES.WIFI_PASSWORD,
-    // );
+    await this._matterController.pairDevice(
+      pairingInfo.nodeId,
+      pairingInfo.payload,
+      ENV_VARIABLES.WIFI_SSID,
+      ENV_VARIABLES.WIFI_PASSWORD,
+    );
 
     // TODO: get device info e return it
   }
 
-  private async exposeThing(thingModel) {
+  private async exposeThing(thingModel, nodeId: NodeId) {
     const device = new WotDevice(
       this._wotNamespace,
       thingModel,
       this._matterController,
+      nodeId,
       TD_DIRECTORY_URI,
     );
     await device.startDevice();
