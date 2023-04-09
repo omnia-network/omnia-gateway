@@ -34,7 +34,7 @@
     "typescript": "~4.4.4"
   },
   "scripts": {
-    "start": "node build/src/gateway.js",
+    "start": "node build/src/main.js",
     "build-and-start": "npm run build && npm run start",
     "clean": "rimraf coverage build tmp",
     "prebuild": "npm run lint",

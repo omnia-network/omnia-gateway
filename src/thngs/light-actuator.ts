@@ -1,8 +1,5 @@
 import * as WoT from "wot-typescript-definitions";
 import fetch from "node-fetch";
-import Ajv from "ajv";
-
-const ajv = new Ajv();
 
 export class LightActuator {
   public thing: WoT.ExposedThing;
@@ -89,7 +86,7 @@ export class LightActuator {
     inputData?: WoT.InteractionOutput,
     _options?: WoT.InteractionOptions,
   ) {
-    let dataValue: string | number | boolean | object | WoT.DataSchemaValue[];
+    let dataValue: WoT.DataSchemaValue;
     if (inputData) {
       dataValue = await inputData.value();
     }
@@ -101,12 +98,7 @@ export class LightActuator {
 
   private initializeActions() {
     this.thing.setActionHandler("lightState", async (inputData) => {
-      const dataValue = await inputData.value();
-      if (!ajv.validate(this.td.actions.lightState.input, dataValue)) {
-        throw new Error("Invalid input");
-      } else {
-        return this.lightStateActionHandler(inputData);
-      }
+      return this.lightStateActionHandler(inputData);
     });
   }
 }
