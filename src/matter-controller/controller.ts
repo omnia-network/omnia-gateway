@@ -2,6 +2,7 @@ import { ChildProcess, spawn } from "child_process";
 import WebSocket from "ws";
 import { parseWebSocketMessage, parseCHIPMessage } from "./parser.js";
 import { CHIPGenericCommandId, CHIPParsedResult } from "../models";
+import { AttributeId } from "@project-chip/matter.js/dist/dts/common/AttributeId";
 import { ClusterId } from "@project-chip/matter.js/dist/dts/common/ClusterId";
 import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
 import { EndpointNumber } from "@project-chip/matter.js/dist/dts/common/EndpointNumber";
@@ -319,4 +320,69 @@ export class MatterController {
 
     return error.error;
   }
+
+  /**
+   * Sends a read attribute command to the Matter controller.
+   * @param {ClusterId} cluster the cluster ID of the attribute to read
+   * @param {AttributeId} attributeId the attribute ID to read
+   * @param {NodeId} nodeId the node ID of the Matter device, as saved locally in the Matter controller
+   * @param {EndpointNumber} endpointId the endpoint ID of the Matter device to read the attribute from
+   * @returns {Promise<CHIPParsedResult>} the parsed result of the command
+   * @throws {Error} if the Matter controller is not running.
+   */
+  async readAttribute(
+    cluster: ClusterId,
+    attribute: AttributeId,
+    nodeId: NodeId,
+    endpointId: EndpointNumber,
+  ): Promise<CHIPParsedResult> {
+    if (!this.chipToolProcess) {
+      throw new Error("Matter controller is not running");
+    }
+
+    const messageToSend = `any read-by-id ${cluster.id} ${attribute.id} ${nodeId.id} ${endpointId.number}`;
+
+    return this.sendWsMessage(
+      messageToSend,
+      this.readAttributeCallback.bind(this, cluster, attribute),
+      this.readAttributeErrorCallback.bind(this, cluster, attribute),
+    )
+  }
+
+  /**
+   * Callback for the read attribute WebSocket message event. Can throw an error if the message is not a valid CHIP message.
+   * @param {ClusterId} cluster the cluster ID of the attribute read
+   * @param {AttributeId} attributeId the attribute ID read
+   * @param {WebSocket.MessageEvent} event the WebSocket message event
+   * @returns {CHIPParsedResult} the parsed result of the command
+   * @throws {Error} if the result of the command is empty
+   */
+  private readAttributeCallback(
+    cluster: ClusterId,
+    attribute: AttributeId,
+    event: WebSocket.MessageEvent,
+  ): CHIPParsedResult {
+    const result = this.parseWsMessage(event.data.toString());
+
+    this.matterControllerLogger.debug(
+      `readAttributeCallback: cluster:${cluster.id} attributeId:${attribute.id}`,
+      result,
+    );
+
+    return result;
+  }
+
+  private readAttributeErrorCallback(
+    cluster: ClusterId,
+    attribute: AttributeId,
+    error: WebSocket.ErrorEvent,
+  ): Error {
+    this.matterControllerLogger.error(
+      `readAttributeErrorCallback: cluster:${cluster.id} attributeId:${attribute.id} error:${error.message}`,
+      error.error,
+    );
+
+    return error.error;
+  }
+
 }

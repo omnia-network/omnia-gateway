@@ -5,6 +5,12 @@ export type CHIPData = Record<string, unknown | Array<unknown>>;
 export type CHIPParsedResult = Array<CHIPData>;
 
 export type CHIPWSResult = {
+  attributeId: number;
+  clusterId: number;
+  endpointId: number;
+  value?: CHIPValue;
+  error?: string;
+} | {
   error: "FAILURE";
 };
 
@@ -12,7 +18,7 @@ export type CHIPWSLog = {
   /**
    * The CHIP module that generated the log
    */
-  module: "TOO" | "CSM" | "DIS" | "DMG" | "EM" | "IN" | "SPT";
+  module: "TOO" | "CSM" | "DIS" | "DMG" | "EM" | "IN" | "SPT" | "IM" | "SC";
   category: "Info" | "Debug" | "Error";
   /**
    * The log message, `base64` encoded
