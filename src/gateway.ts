@@ -5,8 +5,8 @@ import http from "http";
 import { Servient } from "@node-wot/core";
 import bindingHttp from "@node-wot/binding-http";
 // import { omnia_backend } from "./canisters/omnia_backend/index.js";
-// import { MatterController } from "./matter-controller/controller.js";
-// import { ENV_VARIABLES } from "./constants/environment.js";
+import { MatterController } from "./matter-controller/controller.js";
+import { ENV_VARIABLES } from "./constants/environment.js";
 // import {
 //   // IdentifyCluster,
 //   OnOffCluster
@@ -24,7 +24,7 @@ export class OmniaGateway {
   private _icAgent: http.Server;
   private _wotServient: Servient;
   private _wotNamespace: typeof WoT;
-  // private _matterController: MatterController;
+  private _matterController: MatterController;
 
   constructor() {
     this._icAgent = http.createServer((req, res) => {
@@ -115,10 +115,10 @@ export class OmniaGateway {
       }
     });
     this._wotServient = new Servient();
-    // this._matterController = new MatterController(
-    //   parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
-    //   ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
-    // );
+    this._matterController = new MatterController(
+      parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
+      ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
+    );
   }
 
   async start() {
@@ -150,6 +150,7 @@ export class OmniaGateway {
     const device = new WotDevice(
       this._wotNamespace,
       thingModel,
+      this._matterController,
       TD_DIRECTORY_URI,
     );
     await device.startDevice();

@@ -1,5 +1,6 @@
 import * as WoT from "wot-typescript-definitions";
 import fetch from "node-fetch";
+import { MatterController } from "../matter-controller/controller";
 
 export class WotDevice {
   public thing: WoT.ExposedThing;
@@ -8,14 +9,17 @@ export class WotDevice {
 
   private thingModel: WoT.ExposedThingInit;
   private tdDirectory: string;
+  private matterController: MatterController;
 
   constructor(
     deviceWoT: typeof WoT,
     thingModel: WoT.ExposedThingInit,
+    matterController: MatterController,
     tdDirectory?: string,
   ) {
     this.deviceWoT = deviceWoT;
     this.thingModel = thingModel;
+    this.matterController = matterController;
     if (tdDirectory) this.tdDirectory = tdDirectory;
   }
 
@@ -103,7 +107,13 @@ export class WotDevice {
     if (inputData) {
       dataValue = await inputData.value();
     }
-
+    // this.matterController.sendCommand(
+    //     new ClusterId(OnOffCluster.id),
+    //     OnOffCluster.commands.on.requestId,
+    //     {},
+    //     deviceNodeId,
+    //     new EndpointNumber(1),
+    //   );
     console.log("Action:", dataValue);
 
     return "Default action";
