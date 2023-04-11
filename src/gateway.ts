@@ -55,36 +55,7 @@ export class OmniaGateway {
                 this._localDb.storeCommissionedDevice(pairingInfo);
 
                 // TODO: get device info and use it to create TM
-                const thingModel = {
-                  "@context": [
-                    "https://www.w3.org/2019/wot/td/v1",
-                    { "@language": "en" },
-                  ],
-                  "@type": "",
-                  id: `new:${nodeId}`,
-                  title: `${nodeId}`,
-                  description: "",
-                  securityDefinitions: {
-                    "": {
-                      scheme: "nosec",
-                    },
-                  },
-                  security: "",
-                  properties: {
-                    onoff: {
-                      title: "OnOff Matter Cluster Attributes",
-                      description:
-                        "Implementation of the OnOff Matter Cluster Attributes",
-                    },
-                  },
-                  actions: {
-                    onoff: {
-                      title: "OnOff Matter Cluster Commands",
-                      description:
-                        "Implementation of the OnOff Matter Cluster Commands",
-                    },
-                  },
-                };
+                const thingModel = this.generateThingModel(nodeId);
                 this.exposeThing(thingModel, nodeId);
 
                 res.writeHead(200, { "Content-Type": "text/plain" });
@@ -130,7 +101,12 @@ export class OmniaGateway {
       new bindingHttp.HttpServer({ port: WOT_SERVIENT_PORT }),
     );
     this._wotNamespace = await this._wotServient.start();
-    this._localDb.start();
+
+    const db = await this._localDb.start();
+    for (const commissionedDevice of db["commissionedDevices"]) {
+      const thingModel = this.generateThingModel(commissionedDevice.nodeId);
+      this.exposeThing(thingModel, commissionedDevice.nodeId);
+    }
   }
 
   private async pairDevice(pairingInfo) {
@@ -144,6 +120,39 @@ export class OmniaGateway {
     // );
 
     // TODO: get device info e return it
+  }
+
+  private generateThingModel(nodeId) {
+    return {
+      "@context": [
+        "https://www.w3.org/2019/wot/td/v1",
+        { "@language": "en" },
+      ],
+      "@type": "",
+      id: `new:${nodeId}`,
+      title: `${nodeId}`,
+      description: "",
+      securityDefinitions: {
+        "": {
+          scheme: "nosec",
+        },
+      },
+      security: "",
+      properties: {
+        onoff: {
+          title: "OnOff Matter Cluster Attributes",
+          description:
+            "Implementation of the OnOff Matter Cluster Attributes",
+        },
+      },
+      actions: {
+        onoff: {
+          title: "OnOff Matter Cluster Commands",
+          description:
+            "Implementation of the OnOff Matter Cluster Commands",
+        },
+      },
+    };
   }
 
   private async exposeThing(thingModel, _nodeId: NodeId) {
