@@ -21,7 +21,7 @@ export class Database {
   async start() {
     await this.db.read();
     this.db.data ||= { commissionedDevices: [] };
-    console.log(this.db.data);
+    return this.db.data;
   }
 
   public async storeCommissionedDevice(pairingInfo) {
