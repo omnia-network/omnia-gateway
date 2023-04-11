@@ -1,12 +1,10 @@
 import { WotDevice } from "./thngs/wot-device.js";
-// import { MotionSensor } from "./thngs/motion-sensor.js";
-// import { LightActuator } from "./thngs/light-actuator.js";
 import http from "http";
 import { Servient } from "@node-wot/core";
 import bindingHttp from "@node-wot/binding-http";
 // import { omnia_backend } from "./canisters/omnia_backend/index.js";
-// import { MatterController } from "./matter-controller/controller.js";
-// import { ENV_VARIABLES } from "./constants/environment.js";
+import { MatterController } from "./matter-controller/controller.js";
+import { ENV_VARIABLES } from "./constants/environment.js";
 // import {
 //   // IdentifyCluster,
 //   OnOffCluster
@@ -14,8 +12,8 @@ import bindingHttp from "@node-wot/binding-http";
 // TODO: fix types for these imports
 // import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
-import { Database } from "./local_db.js";
 // import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
+import { Database } from "./local_db.js";
 
 const WEB_SERVER_PORT = 3000;
 const WOT_SERVIENT_PORT = 8888;
@@ -26,7 +24,7 @@ export class OmniaGateway {
   private _wotServient: Servient;
   private _wotNamespace: typeof WoT;
   private _localDb: Database;
-  // private _matterController: MatterController;
+  private _matterController: MatterController;
 
   constructor() {
     this._icAgent = http.createServer((req, res) => {
@@ -84,14 +82,14 @@ export class OmniaGateway {
     });
     this._wotServient = new Servient();
     this._localDb = new Database();
-    // this._matterController = new MatterController(
-    //   parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
-    //   ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
-    // );
+    this._matterController = new MatterController(
+      parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
+      ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
+    );
   }
 
   async start() {
-    // await this._matterController.start();
+    await this._matterController.start();
 
     this._icAgent.listen(WEB_SERVER_PORT, () => {
       console.log(`Server running on port ${WEB_SERVER_PORT}`);
@@ -111,23 +109,20 @@ export class OmniaGateway {
 
   private async pairDevice(pairingInfo) {
     console.log(pairingInfo);
-    // const deviceNodeId = new NodeId(BigInt(pairingInfo.nodeId));
-    // await this._matterController.pairDevice(
-    //   deviceNodeId,
-    //   pairingInfo.payload,
-    //   ENV_VARIABLES.WIFI_SSID,
-    //   ENV_VARIABLES.WIFI_PASSWORD,
-    // );
+    const deviceNodeId = new NodeId(BigInt(pairingInfo.nodeId));
+    await this._matterController.pairDevice(
+      deviceNodeId,
+      pairingInfo.payload,
+      ENV_VARIABLES.WIFI_SSID,
+      ENV_VARIABLES.WIFI_PASSWORD,
+    );
 
     // TODO: get device info e return it
   }
 
   private generateThingModel(nodeId) {
     return {
-      "@context": [
-        "https://www.w3.org/2019/wot/td/v1",
-        { "@language": "en" },
-      ],
+      "@context": ["https://www.w3.org/2019/wot/td/v1", { "@language": "en" }],
       "@type": "",
       id: `new:${nodeId}`,
       title: `${nodeId}`,
@@ -141,26 +136,24 @@ export class OmniaGateway {
       properties: {
         onoff: {
           title: "OnOff Matter Cluster Attributes",
-          description:
-            "Implementation of the OnOff Matter Cluster Attributes",
+          description: "Implementation of the OnOff Matter Cluster Attributes",
         },
       },
       actions: {
         onoff: {
           title: "OnOff Matter Cluster Commands",
-          description:
-            "Implementation of the OnOff Matter Cluster Commands",
+          description: "Implementation of the OnOff Matter Cluster Commands",
         },
       },
     };
   }
 
-  private async exposeThing(thingModel, _nodeId: NodeId) {
+  private async exposeThing(thingModel, nodeId: NodeId) {
     const device = new WotDevice(
       this._wotNamespace,
       thingModel,
-      // this._matterController,
-      // nodeId,
+      this._matterController,
+      nodeId,
       TD_DIRECTORY_URI,
     );
     await device.startDevice();
