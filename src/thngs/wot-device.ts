@@ -77,11 +77,11 @@ export class WotDevice {
   private initializeProperties() {
     if (typeof this.td.properties === "object") {
       for (const [property, _info] of Object.entries(this.td.properties)) {
-        console.log(
-          "Registered default property read handler for: ",
-          property,
-          _info,
-        );
+        // console.log(
+        //   "Registered default property read handler for: ",
+        //   property,
+        //   _info,
+        // );
         this.thing.setPropertyReadHandler(
           `${property}`,
           this.defaultPropertyReadHandler,
@@ -93,7 +93,7 @@ export class WotDevice {
   private initializeActions() {
     if (typeof this.td.actions === "object") {
       for (const [action, _info] of Object.entries(this.td.actions)) {
-        console.log("Registered default action handler for: ", action, _info);
+        // console.log("Registered default action handler for: ", action, _info);
         this.thing.setActionHandler(`${action}`, async (inputData) =>
           this.defaultActionHandler(inputData),
         );

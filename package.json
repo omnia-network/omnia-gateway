@@ -60,6 +60,7 @@
     "tslib": "~2.3.1",
     "winston": "^3.8.2",
     "wot-typescript-definitions": "0.8.0-SNAPSHOT.23",
-    "ws": "^8.13.0"
+    "ws": "^8.13.0",
+    "lowdb": "4.0.1"
   }
 }

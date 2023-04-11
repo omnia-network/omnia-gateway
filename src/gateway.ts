@@ -1,6 +1,4 @@
 import { WotDevice } from "./thngs/wot-device.js";
-// import { MotionSensor } from "./thngs/motion-sensor.js";
-// import { LightActuator } from "./thngs/light-actuator.js";
 import http from "http";
 import { Servient } from "@node-wot/core";
 import bindingHttp from "@node-wot/binding-http";
@@ -15,6 +13,7 @@ import { ENV_VARIABLES } from "./constants/environment.js";
 // import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 // import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
+import { Database } from "./local_db.js";
 
 const WEB_SERVER_PORT = 3000;
 const WOT_SERVIENT_PORT = 8888;
@@ -24,6 +23,7 @@ export class OmniaGateway {
   private _icAgent: http.Server;
   private _wotServient: Servient;
   private _wotNamespace: typeof WoT;
+  private _localDb: Database;
   private _matterController: MatterController;
 
   constructor() {
@@ -43,47 +43,18 @@ export class OmniaGateway {
             const requestBody = JSON.parse(body);
             switch (requestBody.command) {
               case "pair": {
-                const randomId = Math.floor(Math.random() * 255);
-                const deviceNodeId = new NodeId(BigInt(randomId));
+                const nodeId = Math.floor(Math.random() * 255);
                 delete requestBody.command;
                 const pairingInfo = {
-                  nodeId: deviceNodeId,
+                  nodeId: nodeId,
                   ...requestBody,
                 };
                 await this.pairDevice(pairingInfo);
+                this._localDb.storeCommissionedDevice(pairingInfo);
 
                 // TODO: get device info and use it to create TM
-                const thingModel = {
-                  "@context": [
-                    "https://www.w3.org/2019/wot/td/v1",
-                    { "@language": "en" },
-                  ],
-                  "@type": "",
-                  id: `new:${randomId}`,
-                  title: `${randomId}`,
-                  description: "",
-                  securityDefinitions: {
-                    "": {
-                      scheme: "nosec",
-                    },
-                  },
-                  security: "",
-                  properties: {
-                    onoff: {
-                      title: "OnOff Matter Cluster Attributes",
-                      description:
-                        "Implementation of the OnOff Matter Cluster Attributes",
-                    },
-                  },
-                  actions: {
-                    onoff: {
-                      title: "OnOff Matter Cluster Commands",
-                      description:
-                        "Implementation of the OnOff Matter Cluster Commands",
-                    },
-                  },
-                };
-                this.exposeThing(thingModel, deviceNodeId);
+                const thingModel = this.generateThingModel(nodeId);
+                this.exposeThing(thingModel, nodeId);
 
                 res.writeHead(200, { "Content-Type": "text/plain" });
                 res.write("Device paired");
@@ -110,6 +81,7 @@ export class OmniaGateway {
       }
     });
     this._wotServient = new Servient();
+    this._localDb = new Database();
     this._matterController = new MatterController(
       parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
       ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
@@ -127,18 +99,53 @@ export class OmniaGateway {
       new bindingHttp.HttpServer({ port: WOT_SERVIENT_PORT }),
     );
     this._wotNamespace = await this._wotServient.start();
+
+    const db = await this._localDb.start();
+    for (const commissionedDevice of db["commissionedDevices"]) {
+      const thingModel = this.generateThingModel(commissionedDevice.nodeId);
+      this.exposeThing(thingModel, commissionedDevice.nodeId);
+    }
   }
 
   private async pairDevice(pairingInfo) {
     console.log(pairingInfo);
+    const deviceNodeId = new NodeId(BigInt(pairingInfo.nodeId));
     await this._matterController.pairDevice(
-      pairingInfo.nodeId,
+      deviceNodeId,
       pairingInfo.payload,
       ENV_VARIABLES.WIFI_SSID,
       ENV_VARIABLES.WIFI_PASSWORD,
     );
 
     // TODO: get device info e return it
+  }
+
+  private generateThingModel(nodeId) {
+    return {
+      "@context": ["https://www.w3.org/2019/wot/td/v1", { "@language": "en" }],
+      "@type": "",
+      id: `new:${nodeId}`,
+      title: `${nodeId}`,
+      description: "",
+      securityDefinitions: {
+        "": {
+          scheme: "nosec",
+        },
+      },
+      security: "",
+      properties: {
+        onoff: {
+          title: "OnOff Matter Cluster Attributes",
+          description: "Implementation of the OnOff Matter Cluster Attributes",
+        },
+      },
+      actions: {
+        onoff: {
+          title: "OnOff Matter Cluster Commands",
+          description: "Implementation of the OnOff Matter Cluster Commands",
+        },
+      },
+    };
   }
 
   private async exposeThing(thingModel, nodeId: NodeId) {
