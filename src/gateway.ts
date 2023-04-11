@@ -5,8 +5,8 @@ import http from "http";
 import { Servient } from "@node-wot/core";
 import bindingHttp from "@node-wot/binding-http";
 // import { omnia_backend } from "./canisters/omnia_backend/index.js";
-import { MatterController } from "./matter-controller/controller.js";
-import { ENV_VARIABLES } from "./constants/environment.js";
+// import { MatterController } from "./matter-controller/controller.js";
+// import { ENV_VARIABLES } from "./constants/environment.js";
 // import {
 //   // IdentifyCluster,
 //   OnOffCluster
@@ -14,6 +14,7 @@ import { ENV_VARIABLES } from "./constants/environment.js";
 // TODO: fix types for these imports
 // import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
+import { Database } from "./local_db.js";
 // import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
 
 const WEB_SERVER_PORT = 3000;
@@ -24,7 +25,8 @@ export class OmniaGateway {
   private _icAgent: http.Server;
   private _wotServient: Servient;
   private _wotNamespace: typeof WoT;
-  private _matterController: MatterController;
+  private _localDb: Database;
+  // private _matterController: MatterController;
 
   constructor() {
     this._icAgent = http.createServer((req, res) => {
@@ -43,14 +45,14 @@ export class OmniaGateway {
             const requestBody = JSON.parse(body);
             switch (requestBody.command) {
               case "pair": {
-                const randomId = Math.floor(Math.random() * 255);
-                const deviceNodeId = new NodeId(BigInt(randomId));
+                const nodeId = Math.floor(Math.random() * 255);
                 delete requestBody.command;
                 const pairingInfo = {
-                  nodeId: deviceNodeId,
+                  nodeId: nodeId,
                   ...requestBody,
                 };
                 await this.pairDevice(pairingInfo);
+                this._localDb.storeCommissionedDevice(pairingInfo);
 
                 // TODO: get device info and use it to create TM
                 const thingModel = {
@@ -59,8 +61,8 @@ export class OmniaGateway {
                     { "@language": "en" },
                   ],
                   "@type": "",
-                  id: `new:${randomId}`,
-                  title: `${randomId}`,
+                  id: `new:${nodeId}`,
+                  title: `${nodeId}`,
                   description: "",
                   securityDefinitions: {
                     "": {
@@ -83,7 +85,7 @@ export class OmniaGateway {
                     },
                   },
                 };
-                this.exposeThing(thingModel, deviceNodeId);
+                this.exposeThing(thingModel, nodeId);
 
                 res.writeHead(200, { "Content-Type": "text/plain" });
                 res.write("Device paired");
@@ -110,14 +112,15 @@ export class OmniaGateway {
       }
     });
     this._wotServient = new Servient();
-    this._matterController = new MatterController(
-      parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
-      ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
-    );
+    this._localDb = new Database();
+    // this._matterController = new MatterController(
+    //   parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
+    //   ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
+    // );
   }
 
   async start() {
-    await this._matterController.start();
+    // await this._matterController.start();
 
     this._icAgent.listen(WEB_SERVER_PORT, () => {
       console.log(`Server running on port ${WEB_SERVER_PORT}`);
@@ -127,26 +130,28 @@ export class OmniaGateway {
       new bindingHttp.HttpServer({ port: WOT_SERVIENT_PORT }),
     );
     this._wotNamespace = await this._wotServient.start();
+    this._localDb.start();
   }
 
   private async pairDevice(pairingInfo) {
     console.log(pairingInfo);
-    await this._matterController.pairDevice(
-      pairingInfo.nodeId,
-      pairingInfo.payload,
-      ENV_VARIABLES.WIFI_SSID,
-      ENV_VARIABLES.WIFI_PASSWORD,
-    );
+    // const deviceNodeId = new NodeId(BigInt(pairingInfo.nodeId));
+    // await this._matterController.pairDevice(
+    //   deviceNodeId,
+    //   pairingInfo.payload,
+    //   ENV_VARIABLES.WIFI_SSID,
+    //   ENV_VARIABLES.WIFI_PASSWORD,
+    // );
 
     // TODO: get device info e return it
   }
 
-  private async exposeThing(thingModel, nodeId: NodeId) {
+  private async exposeThing(thingModel, _nodeId: NodeId) {
     const device = new WotDevice(
       this._wotNamespace,
       thingModel,
-      this._matterController,
-      nodeId,
+      // this._matterController,
+      // nodeId,
       TD_DIRECTORY_URI,
     );
     await device.startDevice();

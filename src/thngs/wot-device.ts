@@ -1,10 +1,10 @@
 import * as WoT from "wot-typescript-definitions";
 import fetch from "node-fetch";
-import { MatterController } from "../matter-controller/controller.js";
-import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
-import { OnOffCluster } from "@project-chip/matter.js/dist/cjs/cluster/OnOffCluster.js";
-import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
-import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
+// import { MatterController } from "../matter-controller/controller.js";
+// import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
+// import { OnOffCluster } from "@project-chip/matter.js/dist/cjs/cluster/OnOffCluster.js";
+// import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
+// import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
 
 export class WotDevice {
   public thing: WoT.ExposedThing;
@@ -13,20 +13,20 @@ export class WotDevice {
 
   private thingModel: WoT.ExposedThingInit;
   private tdDirectory: string;
-  private matterController: MatterController;
-  private nodeId: NodeId;
+  // private matterController: MatterController;
+  // private nodeId: NodeId;
 
   constructor(
     deviceWoT: typeof WoT,
     thingModel: WoT.ExposedThingInit,
-    matterController: MatterController,
-    nodeId: NodeId,
+    // matterController: MatterController,
+    // nodeId: NodeId,
     tdDirectory?: string,
   ) {
     this.deviceWoT = deviceWoT;
     this.thingModel = thingModel;
-    this.matterController = matterController;
-    this.nodeId = nodeId;
+    // this.matterController = matterController;
+    // this.nodeId = nodeId;
     if (tdDirectory) this.tdDirectory = tdDirectory;
   }
 
@@ -116,14 +116,16 @@ export class WotDevice {
     }
     console.log("Action:", dataValue);
 
-    const commandResult = await this.matterController.sendCommand(
-      new ClusterId(OnOffCluster.id),
-      (dataValue as any).command,
-      {},
-      this.nodeId,
-      new EndpointNumber(1),
-    );
+    return "Default action";
 
-    return commandResult;
+    // const commandResult = await this.matterController.sendCommand(
+    //   new ClusterId(OnOffCluster.id),
+    //   (dataValue as any).command,
+    //   {},
+    //   this.nodeId,
+    //   new EndpointNumber(1),
+    // );
+
+    // return commandResult;
   }
 }
