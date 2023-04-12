@@ -7,6 +7,7 @@ import { ClusterId } from "@project-chip/matter.js/dist/dts/common/ClusterId";
 import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
 import { EndpointNumber } from "@project-chip/matter.js/dist/dts/common/EndpointNumber";
 import { getLogger } from "../services/logger.js";
+import { ENV_VARIABLES } from "./../constants/environment.js";
 
 export class MatterController {
   // WebSocket properties to communicate with `chip-tool`
@@ -33,69 +34,73 @@ export class MatterController {
    * @returns {Promise<void>}
    */
   async start(): Promise<void> {
-    this.chipToolProcess = spawn(this.chipToolBinPath, [
-      "interactive",
-      "server",
-      "--port",
-      this.chipWsPort.toString(),
-    ]);
+    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+      this.chipToolProcess = spawn(this.chipToolBinPath, [
+        "interactive",
+        "server",
+        "--port",
+        this.chipWsPort.toString(),
+      ]);
 
-    return new Promise((resolve, reject) => {
-      this.chipToolProcess.on("spawn", () => {
-        this.matterControllerLogger.info("chip-tool spawned");
-      });
+      return new Promise((resolve, reject) => {
+        this.chipToolProcess.on("spawn", () => {
+          this.matterControllerLogger.info("chip-tool spawned");
+        });
 
-      this.chipToolProcess.stdout.on("data", (message) => {
-        // we should not need this, as we are using the WebSocket
-        // and messages are already streamed there
-        this.chipToolLogger.debug(`stdout: ${message.toString()}`);
+        this.chipToolProcess.stdout.on("data", (message) => {
+          // we should not need this, as we are using the WebSocket
+          // and messages are already streamed there
+          this.chipToolLogger.debug(`stdout: ${message.toString()}`);
 
-        if (message.toString().includes("LWS_CALLBACK_EVENT_WAIT_CANCELLED")) {
-          if (!this.isChipToolRunning) {
-            this.matterControllerLogger.info("Matter controller started");
-            this.isChipToolRunning = true;
+          if (
+            message.toString().includes("LWS_CALLBACK_EVENT_WAIT_CANCELLED")
+          ) {
+            if (!this.isChipToolRunning) {
+              this.matterControllerLogger.info("Matter controller started");
+              this.isChipToolRunning = true;
+            }
+
+            if (!this.chipWs) {
+              this.chipWs = new WebSocket(`ws://localhost:${this.chipWsPort}`);
+
+              this.chipWs.onopen = (): void => {
+                this.matterControllerLogger.info("WS opened");
+                resolve();
+              };
+
+              this.chipWs.onclose = (): void => {
+                this.matterControllerLogger.info("WS closed");
+              };
+
+              this.chipWs.onerror = (error): void => {
+                this.matterControllerLogger.error(
+                  `WS error ${error.message}`,
+                  error.error,
+                );
+              };
+            }
           }
+        });
 
-          if (!this.chipWs) {
-            this.chipWs = new WebSocket(`ws://localhost:${this.chipWsPort}`);
+        this.chipToolProcess.stderr.on("data", (message) => {
+          this.chipToolLogger.error(`stderr: ${message.toString()}`);
+        });
 
-            this.chipWs.onopen = (): void => {
-              this.matterControllerLogger.info("WS opened");
-              resolve();
-            };
+        this.chipToolProcess.on("error", (error) => {
+          this.matterControllerLogger.error(
+            `chip-tool error: ${error.message}`,
+            error,
+          );
+          reject(error);
+        });
 
-            this.chipWs.onclose = (): void => {
-              this.matterControllerLogger.info("WS closed");
-            };
-
-            this.chipWs.onerror = (error): void => {
-              this.matterControllerLogger.error(
-                `WS error ${error.message}`,
-                error.error,
-              );
-            };
-          }
-        }
+        this.chipToolProcess.on("exit", (code, signal) => {
+          this.matterControllerLogger.info(
+            `chip-tool exit: code:${code} signal:${signal}`,
+          );
+        });
       });
-
-      this.chipToolProcess.stderr.on("data", (message) => {
-        this.chipToolLogger.error(`stderr: ${message.toString()}`);
-      });
-
-      this.chipToolProcess.on("error", (error) => {
-        this.matterControllerLogger.error(
-          `chip-tool error: ${error.message}`,
-          error,
-        );
-        reject(error);
-      });
-
-      this.chipToolProcess.on("exit", (code, signal) => {
-        this.matterControllerLogger.info(
-          `chip-tool exit: code:${code} signal:${signal}`,
-        );
-      });
-    });
+    }
   }
 
   /**
@@ -116,51 +121,49 @@ export class MatterController {
   }
 
   /**
- * Sends a command to the Matter controller through the WebSocket.
- * It takes care to handle the WebSocket events, unsubscribe from them and handle the successCallback function.
- * @param {string} message the message to send
- * @param {Function} successCallback the callback to call when the message is received. It can throw an error, that will be caught and returned as a rejected promise.
- * @param {Function} errorCallback the callback to call when an error occurs
- * @returns {Promise<T>} the result of the `successCallback` function
- * @throws {Error} The error thrown by the `successCallback` function or the error of the WebSocket.
- */
+   * Sends a command to the Matter controller through the WebSocket.
+   * It takes care to handle the WebSocket events, unsubscribe from them and handle the successCallback function.
+   * @param {string} message the message to send
+   * @param {Function} successCallback the callback to call when the message is received. It can throw an error, that will be caught and returned as a rejected promise.
+   * @param {Function} errorCallback the callback to call when an error occurs
+   * @returns {Promise<T>} the result of the `successCallback` function
+   * @throws {Error} The error thrown by the `successCallback` function or the error of the WebSocket.
+   */
   private async sendWsMessage<T>(
     message: string,
     successCallback: (event: WebSocket.MessageEvent) => T,
     errorCallback: (event: WebSocket.ErrorEvent) => Error,
   ): Promise<T> {
-    this.matterControllerLogger.debug(`sending message: ${message}`);
+    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+      this.matterControllerLogger.debug(`sending message: ${message}`);
 
-    this.chipWs.send(message);
+      this.chipWs.send(message);
 
-    return new Promise((resolve, reject) => {
-      const messageHandler = (ev: WebSocket.MessageEvent): void => {
-        try {
-          resolve(successCallback(ev));
-        } catch (e) {
-          this.matterControllerLogger.error(
-            `sendWsMessage: error while handling success callback: ${e.message}`,
-            e,
-          );
-          reject(e);
-        }
-        this.chipWs.removeEventListener("message", messageHandler);
-      };
+      return new Promise((resolve, reject) => {
+        const messageHandler = (ev: WebSocket.MessageEvent): void => {
+          try {
+            resolve(successCallback(ev));
+          } catch (e) {
+            this.matterControllerLogger.error(
+              `sendWsMessage: error while handling success callback: ${e.message}`,
+              e,
+            );
+            reject(e);
+          }
+          this.chipWs.removeEventListener("message", messageHandler);
+        };
 
-      const errorHandler = (ev: WebSocket.ErrorEvent): void => {
-        reject(errorCallback(ev));
-        this.chipWs.removeEventListener("error", errorHandler);
-      };
+        const errorHandler = (ev: WebSocket.ErrorEvent): void => {
+          reject(errorCallback(ev));
+          this.chipWs.removeEventListener("error", errorHandler);
+        };
 
-      this.chipWs.addEventListener(
-        "message",
-        messageHandler,
-      );
-      this.chipWs.addEventListener(
-        "error",
-        errorHandler,
-      );
-    });
+        this.chipWs.addEventListener("message", messageHandler);
+        this.chipWs.addEventListener("error", errorHandler);
+      });
+    } else {
+      return new Promise((resolve, _reject) => resolve({} as T));
+    }
   }
 
   /**
@@ -191,36 +194,47 @@ export class MatterController {
    * @throws {Error} if the pairing failed
    * @throws {Error} if ssid or password are missing
    */
-  async pairDevice(nodeId: NodeId, payload: string, ssid: string, password: string): Promise<CHIPParsedResult> {
-    if (!this.chipToolProcess) {
-      throw new Error("Matter controller is not running");
+  async pairDevice(
+    nodeId: NodeId,
+    payload: string,
+    ssid: string,
+    password: string,
+  ): Promise<CHIPParsedResult> {
+    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+      if (!this.chipToolProcess) {
+        throw new Error("Matter controller is not running");
+      }
+
+      if (!ssid || !password) {
+        throw new Error("WiFi SSID or password are missing");
+      }
+
+      const messageToSend = `pairing code-wifi ${nodeId.id} ${ssid} ${password} ${payload}`;
+
+      return this.sendWsMessage(
+        messageToSend,
+        this.pairDeviceCallback.bind(this, nodeId, true),
+        this.pairDeviceErrorCallback.bind(this, nodeId, true),
+      );
     }
-
-    if (!ssid || !password) {
-      throw new Error("WiFi SSID or password are missing");
-    }
-
-    const messageToSend = `pairing code-wifi ${nodeId.id} ${ssid} ${password} ${payload}`;
-
-    return this.sendWsMessage(
-      messageToSend,
-      this.pairDeviceCallback.bind(this, nodeId, true),
-      this.pairDeviceErrorCallback.bind(this, nodeId, true),
-    )
+    return new Promise((resolve, _reject) => resolve([] as CHIPParsedResult));
   }
 
   async unpairDevice(nodeId: NodeId): Promise<CHIPParsedResult> {
-    if (!this.chipToolProcess) {
-      throw new Error("Matter controller is not running");
+    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+      if (!this.chipToolProcess) {
+        throw new Error("Matter controller is not running");
+      }
+
+      const messageToSend = `pairing unpair ${nodeId.id}`;
+
+      return this.sendWsMessage(
+        messageToSend,
+        this.pairDeviceCallback.bind(this, nodeId, false),
+        this.pairDeviceErrorCallback.bind(this, nodeId, false),
+      );
     }
-
-    const messageToSend = `pairing unpair ${nodeId.id}`;
-
-    return this.sendWsMessage(
-      messageToSend,
-      this.pairDeviceCallback.bind(this, nodeId, false),
-      this.pairDeviceErrorCallback.bind(this, nodeId, false),
-    );
+    return new Promise((resolve, _reject) => resolve([] as CHIPParsedResult));
   }
 
   /**
@@ -231,7 +245,11 @@ export class MatterController {
    * @returns {CHIPParsedResult} the parsed result of the command
    * @throws {Error} if the pairing failed
    */
-  private pairDeviceCallback(nodeId: NodeId, isPairing: boolean, event: WebSocket.MessageEvent): CHIPParsedResult {
+  private pairDeviceCallback(
+    nodeId: NodeId,
+    isPairing: boolean,
+    event: WebSocket.MessageEvent,
+  ): CHIPParsedResult {
     const result = this.parseWsMessage(event.data.toString());
 
     this.matterControllerLogger.info(
@@ -248,7 +266,9 @@ export class MatterController {
     error: WebSocket.ErrorEvent,
   ): Error {
     this.matterControllerLogger.error(
-      `${isPairing ? "pairing" : "unpairing"}DeviceError: nodeId:${nodeId.id} error:${error.message}`,
+      `${isPairing ? "pairing" : "unpairing"}DeviceError: nodeId:${
+        nodeId.id
+      } error:${error.message}`,
       error.error,
     );
 
@@ -272,17 +292,24 @@ export class MatterController {
     nodeId: NodeId,
     endpointId: EndpointNumber,
   ): Promise<CHIPParsedResult> {
-    if (!this.chipToolProcess) {
-      throw new Error("Matter controller is not running");
+    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+      if (!this.chipToolProcess) {
+        throw new Error("Matter controller is not running");
+      }
+
+      const messageToSend = `any command-by-id ${
+        cluster.id
+      } ${commandId} '${JSON.stringify(payload)}' ${nodeId.id} ${
+        endpointId.number
+      }`;
+
+      return this.sendWsMessage(
+        messageToSend,
+        this.commandCallback.bind(this, cluster, commandId),
+        this.commandErrorCallback.bind(this, cluster, commandId),
+      );
     }
-
-    const messageToSend = `any command-by-id ${cluster.id} ${commandId} '${JSON.stringify(payload)}' ${nodeId.id} ${endpointId.number}`;
-
-    return this.sendWsMessage(
-      messageToSend,
-      this.commandCallback.bind(this, cluster, commandId),
-      this.commandErrorCallback.bind(this, cluster, commandId),
-    )
+    return new Promise((resolve, _reject) => resolve([] as CHIPParsedResult));
   }
 
   /**
@@ -336,17 +363,20 @@ export class MatterController {
     nodeId: NodeId,
     endpointId: EndpointNumber,
   ): Promise<CHIPParsedResult> {
-    if (!this.chipToolProcess) {
-      throw new Error("Matter controller is not running");
+    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+      if (!this.chipToolProcess) {
+        throw new Error("Matter controller is not running");
+      }
+
+      const messageToSend = `any read-by-id ${cluster.id} ${attribute.id} ${nodeId.id} ${endpointId.number}`;
+
+      return this.sendWsMessage(
+        messageToSend,
+        this.readAttributeCallback.bind(this, cluster, attribute),
+        this.readAttributeErrorCallback.bind(this, cluster, attribute),
+      );
     }
-
-    const messageToSend = `any read-by-id ${cluster.id} ${attribute.id} ${nodeId.id} ${endpointId.number}`;
-
-    return this.sendWsMessage(
-      messageToSend,
-      this.readAttributeCallback.bind(this, cluster, attribute),
-      this.readAttributeErrorCallback.bind(this, cluster, attribute),
-    )
+    return new Promise((resolve, _reject) => resolve([] as CHIPParsedResult));
   }
 
   /**
@@ -384,5 +414,4 @@ export class MatterController {
 
     return error.error;
   }
-
 }
