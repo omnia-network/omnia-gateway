@@ -4,15 +4,17 @@ export type CHIPData = Record<string, unknown | Array<unknown>>;
 
 export type CHIPParsedResult = Array<CHIPData>;
 
-export type CHIPWSResult = {
-  attributeId: number;
-  clusterId: number;
-  endpointId: number;
-  value?: CHIPValue;
-  error?: string;
-} | {
-  error: "FAILURE";
-};
+export type CHIPWSResult =
+  | {
+      attributeId: number;
+      clusterId: number;
+      endpointId: number;
+      value?: CHIPValue;
+      error?: string;
+    }
+  | {
+      error: "FAILURE";
+    };
 
 export type CHIPWSLog = {
   /**

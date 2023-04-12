@@ -17,7 +17,9 @@ export const getLogger = (label: string): Logger => {
       format.label({ label }),
       format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
       // Format the metadata object
-      format.metadata({ fillExcept: ["message", "level", "timestamp", "label"] }),
+      format.metadata({
+        fillExcept: ["message", "level", "timestamp", "label"],
+      }),
     ),
     level: "debug",
     transports: [

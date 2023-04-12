@@ -8,7 +8,13 @@ import type {
 // The CHIP tool sends a lot of messages that are not useful for us
 // We only want to parse the messages that contain data
 // The data messages start with one of these strings
-const INITIAL_DATA_MARKERS = ["InvokeResponseMessage=", "ReportDataMessage=", "StatusResponseMessage=", "WriteResponseMessage=", "SubscribeResponseMessage="];
+const INITIAL_DATA_MARKERS = [
+  "InvokeResponseMessage=",
+  "ReportDataMessage=",
+  "StatusResponseMessage=",
+  "WriteResponseMessage=",
+  "SubscribeResponseMessage=",
+];
 
 const splitAtFirstChar = (toSplit: string, char: string): Array<string> => {
   const charIndex = toSplit.indexOf(char); // Find the index of the first char

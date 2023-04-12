@@ -10,18 +10,20 @@ import { getLogger } from "../services/logger.js";
 import { ENV_VARIABLES } from "./../constants/environment.js";
 
 export class MatterController {
-  // WebSocket properties to communicate with `chip-tool`
+  //// WebSocket properties to communicate with `chip-tool`
   readonly chipWsPort: number;
   private chipWs: WebSocket;
 
-  // `chip-tool` process execution properties
+  //// `chip-tool` process execution properties
   readonly chipToolBinPath: string;
   private chipToolProcess: ChildProcess;
   private isChipToolRunning = false;
   private chipToolLogger = getLogger("chip-tool");
 
-  // Matter Controller properties
+  //// Matter Controller properties
   private matterControllerLogger = getLogger("MatterController");
+  // this flag is needed only for testing purposes, where the `chip-tool` is not available
+  private useMatterController = ENV_VARIABLES.USE_MATTER_CONTROLLER;
 
   constructor(chipWsPort: number, chipToolBinPath: string) {
     this.chipWsPort = chipWsPort;
@@ -33,8 +35,8 @@ export class MatterController {
    * This exposes a WebSocket on port `this.chipWsPort`, to which this Matter Controller connects to.
    * @returns {Promise<void>}
    */
-  async start(): Promise<void> {
-    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+  start(): Promise<void> {
+    if (this.useMatterController) {
       this.chipToolProcess = spawn(this.chipToolBinPath, [
         "interactive",
         "server",
@@ -101,6 +103,8 @@ export class MatterController {
         });
       });
     }
+
+    return Promise.resolve();
   }
 
   /**
@@ -134,7 +138,7 @@ export class MatterController {
     successCallback: (event: WebSocket.MessageEvent) => T,
     errorCallback: (event: WebSocket.ErrorEvent) => Error,
   ): Promise<T> {
-    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+    if (this.useMatterController) {
       this.matterControllerLogger.debug(`sending message: ${message}`);
 
       this.chipWs.send(message);
@@ -161,9 +165,9 @@ export class MatterController {
         this.chipWs.addEventListener("message", messageHandler);
         this.chipWs.addEventListener("error", errorHandler);
       });
-    } else {
-      return new Promise((resolve, _reject) => resolve({} as T));
     }
+
+    return Promise.resolve({} as T);
   }
 
   /**
@@ -200,7 +204,7 @@ export class MatterController {
     ssid: string,
     password: string,
   ): Promise<CHIPParsedResult> {
-    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+    if (this.useMatterController) {
       if (!this.chipToolProcess) {
         throw new Error("Matter controller is not running");
       }
@@ -217,11 +221,12 @@ export class MatterController {
         this.pairDeviceErrorCallback.bind(this, nodeId, true),
       );
     }
-    return new Promise((resolve, _reject) => resolve([] as CHIPParsedResult));
+
+    return Promise.resolve([] as CHIPParsedResult);
   }
 
   async unpairDevice(nodeId: NodeId): Promise<CHIPParsedResult> {
-    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+    if (this.useMatterController) {
       if (!this.chipToolProcess) {
         throw new Error("Matter controller is not running");
       }
@@ -234,7 +239,8 @@ export class MatterController {
         this.pairDeviceErrorCallback.bind(this, nodeId, false),
       );
     }
-    return new Promise((resolve, _reject) => resolve([] as CHIPParsedResult));
+
+    return Promise.resolve([] as CHIPParsedResult);
   }
 
   /**
@@ -292,7 +298,7 @@ export class MatterController {
     nodeId: NodeId,
     endpointId: EndpointNumber,
   ): Promise<CHIPParsedResult> {
-    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+    if (this.useMatterController) {
       if (!this.chipToolProcess) {
         throw new Error("Matter controller is not running");
       }
@@ -309,7 +315,8 @@ export class MatterController {
         this.commandErrorCallback.bind(this, cluster, commandId),
       );
     }
-    return new Promise((resolve, _reject) => resolve([] as CHIPParsedResult));
+
+    return Promise.resolve([] as CHIPParsedResult);
   }
 
   /**
@@ -363,7 +370,7 @@ export class MatterController {
     nodeId: NodeId,
     endpointId: EndpointNumber,
   ): Promise<CHIPParsedResult> {
-    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+    if (this.useMatterController) {
       if (!this.chipToolProcess) {
         throw new Error("Matter controller is not running");
       }
@@ -376,7 +383,8 @@ export class MatterController {
         this.readAttributeErrorCallback.bind(this, cluster, attribute),
       );
     }
-    return new Promise((resolve, _reject) => resolve([] as CHIPParsedResult));
+
+    return Promise.resolve([] as CHIPParsedResult);
   }
 
   /**

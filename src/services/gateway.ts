@@ -1,10 +1,10 @@
-import { WotDevice } from "./thngs/wot-device.js";
+import { WotDevice } from "../thngs/wot-device.js";
 import http from "http";
 import { Servient } from "@node-wot/core";
 import bindingHttp from "@node-wot/binding-http";
 // import { omnia_backend } from "./canisters/omnia_backend/index.js";
-import { MatterController } from "./matter-controller/controller.js";
-import { ENV_VARIABLES } from "./constants/environment.js";
+import { MatterController } from "../matter-controller/controller.js";
+import { ENV_VARIABLES } from "../constants/environment.js";
 // import {
 //   // IdentifyCluster,
 //   OnOffCluster
@@ -13,20 +13,28 @@ import { ENV_VARIABLES } from "./constants/environment.js";
 // import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 // import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
-import { Database } from "./local_db.js";
+import { Database } from "./local-db.js";
+import { OmniaGatewayOptions } from "../models";
 
 const WEB_SERVER_PORT = 3000;
-const WOT_SERVIENT_PORT = 8888;
 const TD_DIRECTORY_URI = "";
 
 export class OmniaGateway {
+  //// IC Agent
   private _icAgent: http.Server;
+
+  //// WoT
   private _wotServient: Servient;
   private _wotNamespace: typeof WoT;
+  readonly wotServientPort: number;
+
+  //// local database
   private _localDb: Database;
+
+  //// Matter Controller
   private _matterController: MatterController;
 
-  constructor() {
+  constructor(options: OmniaGatewayOptions) {
     this._icAgent = http.createServer((req, res) => {
       if (
         req.method === "POST" &&
@@ -80,15 +88,23 @@ export class OmniaGateway {
         res.end();
       }
     });
+
+    this.wotServientPort = options.wotServientPort;
     this._wotServient = new Servient();
+
     this._localDb = new Database();
+
     this._matterController = new MatterController(
-      parseInt(ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT),
-      ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
+      options.matterControllerChipWsPort,
+      options.matterControllerChipToolPath,
     );
   }
 
-  async start() {
+  async start(): Promise<void> {
+    if (!this.wotServientPort) {
+      throw new Error("WOT_SERVIENT_PORT not set");
+    }
+
     await this._matterController.start();
 
     this._icAgent.listen(WEB_SERVER_PORT, () => {
@@ -96,7 +112,7 @@ export class OmniaGateway {
     });
 
     this._wotServient.addServer(
-      new bindingHttp.HttpServer({ port: WOT_SERVIENT_PORT }),
+      new bindingHttp.HttpServer({ port: this.wotServientPort }),
     );
     this._wotNamespace = await this._wotServient.start();
 
@@ -107,7 +123,7 @@ export class OmniaGateway {
     }
   }
 
-  private async pairDevice(pairingInfo) {
+  private async pairDevice(pairingInfo): Promise<void> {
     console.log(pairingInfo);
     const deviceNodeId = new NodeId(BigInt(pairingInfo.nodeId));
     await this._matterController.pairDevice(
@@ -120,7 +136,7 @@ export class OmniaGateway {
     // TODO: get device info e return it
   }
 
-  private generateThingModel(nodeId) {
+  private generateThingModel(nodeId): Record<string, unknown> {
     return {
       "@context": ["https://www.w3.org/2019/wot/td/v1", { "@language": "en" }],
       "@type": "",
@@ -148,7 +164,10 @@ export class OmniaGateway {
     };
   }
 
-  private async exposeThing(thingModel, nodeId: NodeId) {
+  private async exposeThing(
+    thingModel: Record<string, unknown>,
+    nodeId: NodeId,
+  ): Promise<void> {
     const device = new WotDevice(
       this._wotNamespace,
       thingModel,
@@ -159,34 +178,3 @@ export class OmniaGateway {
     await device.startDevice();
   }
 }
-
-// // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/ban-ts-comment
-// // @ts-ignore
-// // console.log(omnia_backend);
-// console.log(await omnia_backend.initGateway());
-
-// try {
-//   // await matterController.sendCommand(
-//   //   new ClusterId(IdentifyCluster.id),
-//   //   IdentifyCluster.commands.identify.requestId,
-//   //   {"0x0": "u:10"},
-//   //   deviceNodeId,
-//   //   new EndpointNumber(1),
-//   // );
-
-//   await matterController.sendCommand(
-//     new ClusterId(OnOffCluster.id),
-//     OnOffCluster.commands.on.requestId,
-//     {},
-//     deviceNodeId,
-//     new EndpointNumber(1),
-//   );
-
-//   await matterController.unpairDevice(deviceNodeId);
-
-//   await matterController.stop();
-// } catch (error) {
-//   console.error(error);
-//   await matterController.stop();
-// }
-// });
