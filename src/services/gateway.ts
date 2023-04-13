@@ -4,7 +4,6 @@ import { Servient } from "@node-wot/core";
 import bindingHttp from "@node-wot/binding-http";
 import { v4 } from "uuid";
 import { existsSync, mkdirSync } from "fs";
-// import { omnia_backend } from "./canisters/omnia_backend/index.js";
 import { MatterController } from "../matter-controller/controller.js";
 import { ENV_VARIABLES } from "../constants/environment.js";
 // import {
@@ -17,6 +16,8 @@ import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 // import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
 import { Database } from "./local-db.js";
 import { CHIPParsedResult, OmniaGatewayOptions } from "../models";
+import { IcAgent } from "./ic-agent.js";
+import { omnia_backend } from "../canisters/omnia_backend/index.js";
 
 const WEB_SERVER_PORT = 3000;
 const TD_DIRECTORY_URI = "";
@@ -128,6 +129,9 @@ export class OmniaGateway {
     if (!this.wotServientPort) {
       throw new Error("WOT_SERVIENT_PORT not set");
     }
+
+    const agent = new IcAgent(omnia_backend);
+    await agent.start();
 
     // we must ensure that the data folder exists before starting sub services
     // because they need it to store their data

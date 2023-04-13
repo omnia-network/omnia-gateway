@@ -50,13 +50,14 @@
     "generate:types": "cd scripts && ./generate-omnia-backend-types.sh"
   },
   "dependencies": {
-    "@dfinity/agent": "^0.15.1",
+    "@dfinity/agent": "^0.15.5",
     "@dfinity/principal": "^0.15.1",
     "@node-wot/binding-http": "0.8.x",
     "@node-wot/core": "0.8.x",
     "@project-chip/matter.js": "^0.2.1",
     "ajv": "^6.12.6",
     "dotenv": "^16.0.3",
+    "isomorphic-fetch": "^3.0.0",
     "lowdb": "4.0.1",
     "node-fetch": "^3.3.0",
     "tslib": "~2.3.1",
