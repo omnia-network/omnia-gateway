@@ -1,13 +1,23 @@
 import { ChildProcess, spawn } from "child_process";
+import { copyFileSync, existsSync, mkdirSync, readdirSync } from "fs";
+import { join } from "path";
 import WebSocket from "ws";
 import { parseWebSocketMessage, parseCHIPMessage } from "./parser.js";
-import { CHIPGenericCommandId, CHIPParsedResult } from "../models";
-import { AttributeId } from "@project-chip/matter.js/dist/dts/common/AttributeId";
-import { ClusterId } from "@project-chip/matter.js/dist/dts/common/ClusterId";
+import {
+  CHIPGenericCommandId,
+  CHIPParsedResult,
+  MatterDeviceInfo,
+} from "../models";
+import { AttributeId } from "@project-chip/matter.js/dist/cjs/common/AttributeId.js";
+import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
 import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
-import { EndpointNumber } from "@project-chip/matter.js/dist/dts/common/EndpointNumber";
+import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
 import { getLogger } from "../services/logger.js";
 import { ENV_VARIABLES } from "./../constants/environment.js";
+import { BasicInformationCluster } from "@project-chip/matter.js";
+
+const CHIP_TOOL_TMP_PATH = "/tmp";
+const CHIP_TOOL_PERSISTENT_STORAGE_PATH = `${process.cwd()}/data/chip-tool`;
 
 export class MatterController {
   //// WebSocket properties to communicate with `chip-tool`
@@ -36,7 +46,19 @@ export class MatterController {
    * @returns {Promise<void>}
    */
   start(): Promise<void> {
+    // make sure the persistent data folder exists
+    if (!existsSync(CHIP_TOOL_PERSISTENT_STORAGE_PATH)) {
+      this.matterControllerLogger.info(
+        `Creating persistent storage folder at ${CHIP_TOOL_PERSISTENT_STORAGE_PATH}`,
+      );
+      mkdirSync(CHIP_TOOL_PERSISTENT_STORAGE_PATH);
+    }
+
     if (this.useMatterController) {
+      // before spawning the `chip-tool` process, we need to restore the persistent data
+      // and put them in /tmp folder, where `chip-tool` expects them
+      this.restoreMatterControllerData();
+
       this.chipToolProcess = spawn(this.chipToolBinPath, [
         "interactive",
         "server",
@@ -109,16 +131,18 @@ export class MatterController {
 
   /**
    * Stops this Matter controller. Closes the WebSocket and stops the `chip-tool` from command line.
-   * @returns {Promise<void>}
+   * @returns {void}
    * @throws {Error} if the Matter controller is not running.
    * @throws {Error} if the Matter controller is not stopped.
    */
-  async stop(): Promise<void> {
+  stop(): void {
     if (this.chipToolProcess) {
       this.chipToolProcess.kill();
       this.chipToolProcess = null;
 
       this.chipWs.close();
+
+      this.persistMatterControllerData();
 
       this.matterControllerLogger.info("Matter controller stopped");
     }
@@ -263,6 +287,9 @@ export class MatterController {
       result,
     );
 
+    // persist the `chip-tool` data, so that if the controller is stopped accidentally, we can still restore it
+    this.persistMatterControllerData();
+
     return result;
   }
 
@@ -321,6 +348,7 @@ export class MatterController {
 
   /**
    * Callback for the command WebSocket message event. Can throw an error if the message is not a valid CHIP message.
+   * TODO: investigate if we can use the trace logs also (https://github.com/project-chip/connectedhomeip/tree/master/examples/chip-tool#using-message-tracing)
    * @param {ClusterId} cluster the cluster ID of the command sent
    * @param {CHIPGenericCommandId} commandId the command ID sent
    * @param {WebSocket.MessageEvent} event the WebSocket message event
@@ -421,5 +449,78 @@ export class MatterController {
     );
 
     return error.error;
+  }
+
+  /**
+   * chip-tool saves data in /tmp system folder, and there's no way to change it as of now.
+   * This method copies the data to `data/chip-tool` folder, so that it can be restored after a reboot, using `restoreMatterControllerData` method.
+   */
+  private persistMatterControllerData(): void {
+    // this can be inefficient if the /tmp folder is big
+    const files = readdirSync(CHIP_TOOL_TMP_PATH).filter((f) =>
+      f.startsWith("chip_"),
+    );
+
+    files.forEach((f) => {
+      copyFileSync(
+        join(CHIP_TOOL_TMP_PATH, f),
+        join(CHIP_TOOL_PERSISTENT_STORAGE_PATH, f),
+      );
+    });
+  }
+
+  /**
+   * Restores the Matter controller data from `data/chip-tool` folder.
+   * This method is called after a reboot, to restore the data saved by `backupMatterControllerData` method.
+   */
+  private restoreMatterControllerData(): void {
+    const files = readdirSync(CHIP_TOOL_PERSISTENT_STORAGE_PATH).filter((f) =>
+      f.startsWith("chip_"),
+    );
+
+    files.forEach((f) => {
+      copyFileSync(
+        join(CHIP_TOOL_PERSISTENT_STORAGE_PATH, f),
+        join(CHIP_TOOL_TMP_PATH, f),
+      );
+    });
+  }
+
+  /**
+   * Calls the `basicinformation` cluster command and parses the result
+   * There's no way to retrieve data all together, so for now we just repeat calls to the `basicinformation` cluster command for each attribute
+   * @param {NodeId} nodeId the node ID of the Matter device, as saved locally in the Matter controller
+   * @returns {Promise<MatterDeviceInfo>} the parsed result of the command
+   * @throws {Error} if somthing goes wrong while calling the `basicinformation` cluster command
+   */
+  async getDeviceInfo(nodeId: NodeId): Promise<MatterDeviceInfo> {
+    const vendorIdResult = await this.readAttribute(
+      new ClusterId(BasicInformationCluster.id),
+      new AttributeId(BasicInformationCluster.attributes.vendorId.id),
+      nodeId,
+      new EndpointNumber(0),
+    );
+
+    const vendorId =
+      vendorIdResult[0]["ReportDataMessage"]["AttributeReportIBs"][0][
+        "AttributeReportIB"
+      ]["AttributeDataIB"]["Data"];
+
+    const productIdResult = await this.readAttribute(
+      new ClusterId(BasicInformationCluster.id),
+      new AttributeId(BasicInformationCluster.attributes.productId.id),
+      nodeId,
+      new EndpointNumber(0),
+    );
+
+    const productId =
+      productIdResult[0]["ReportDataMessage"]["AttributeReportIBs"][0][
+        "AttributeReportIB"
+      ]["AttributeDataIB"]["Data"];
+
+    return {
+      vendorId,
+      productId,
+    };
   }
 }

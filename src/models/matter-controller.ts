@@ -38,3 +38,8 @@ export type CHIPWSMessage = {
 };
 
 export type CHIPGenericCommandId = number;
+
+export type MatterDeviceInfo = {
+  vendorId: number;
+  productId: number;
+};
