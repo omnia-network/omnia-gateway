@@ -61,7 +61,7 @@ const parseScalarValue = (value: string): CHIPValue => {
 
 const parseCHIPResultToJSON = (
   inputString: string,
-  arrayToFill: Array<unknown> = null,
+  arrayToFill: Array<unknown> | null = null,
 ): CHIPData => {
   const parsedJSON: CHIPData = {};
 

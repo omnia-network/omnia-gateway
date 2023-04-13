@@ -1,20 +1,24 @@
 import { ChildProcess, spawn } from "child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
+import {
+  BasicInformationCluster,
+  DescriptorCluster,
+} from "@project-chip/matter.js";
+import { AttributeId } from "@project-chip/matter.js/dist/cjs/common/AttributeId.js";
+import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
+import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
+import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 import WebSocket from "ws";
-import { parseWebSocketMessage, parseCHIPMessage } from "./parser.js";
 import {
   CHIPGenericCommandId,
   CHIPParsedResult,
-  MatterDeviceInfo,
+  DbMatterClusters,
+  DbMatterDeviceInfo,
 } from "../models";
-import { AttributeId } from "@project-chip/matter.js/dist/cjs/common/AttributeId.js";
-import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
-import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
-import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
 import { getLogger } from "../services/logger.js";
 import { ENV_VARIABLES } from "./../constants/environment.js";
-import { BasicInformationCluster } from "@project-chip/matter.js";
+import { parseCHIPMessage, parseWebSocketMessage } from "./parser.js";
 
 const CHIP_TOOL_TMP_PATH = "/tmp";
 const CHIP_TOOL_PERSISTENT_STORAGE_PATH = `${process.cwd()}/data/chip-tool`;
@@ -26,7 +30,7 @@ export class MatterController {
 
   //// `chip-tool` process execution properties
   readonly chipToolBinPath: string;
-  private chipToolProcess: ChildProcess;
+  private chipToolProcess: ChildProcess | null = null;
   private isChipToolRunning = false;
   private chipToolLogger = getLogger("chip-tool");
 
@@ -67,11 +71,11 @@ export class MatterController {
       ]);
 
       return new Promise((resolve, reject) => {
-        this.chipToolProcess.on("spawn", () => {
+        this.chipToolProcess?.on("spawn", () => {
           this.matterControllerLogger.info("chip-tool spawned");
         });
 
-        this.chipToolProcess.stdout.on("data", (message) => {
+        this.chipToolProcess?.stdout?.on("data", (message) => {
           // we should not need this, as we are using the WebSocket
           // and messages are already streamed there
           this.chipToolLogger.debug(`stdout: ${message.toString()}`);
@@ -106,11 +110,11 @@ export class MatterController {
           }
         });
 
-        this.chipToolProcess.stderr.on("data", (message) => {
+        this.chipToolProcess?.stderr?.on("data", (message) => {
           this.chipToolLogger.error(`stderr: ${message.toString()}`);
         });
 
-        this.chipToolProcess.on("error", (error) => {
+        this.chipToolProcess?.on("error", (error) => {
           this.matterControllerLogger.error(
             `chip-tool error: ${error.message}`,
             error,
@@ -118,7 +122,7 @@ export class MatterController {
           reject(error);
         });
 
-        this.chipToolProcess.on("exit", (code, signal) => {
+        this.chipToolProcess?.on("exit", (code, signal) => {
           this.matterControllerLogger.info(
             `chip-tool exit: code:${code} signal:${signal}`,
           );
@@ -493,7 +497,7 @@ export class MatterController {
    * @returns {Promise<MatterDeviceInfo>} the parsed result of the command
    * @throws {Error} if somthing goes wrong while calling the `basicinformation` cluster command
    */
-  async getDeviceInfo(nodeId: NodeId): Promise<MatterDeviceInfo> {
+  async getDeviceInfo(nodeId: NodeId): Promise<DbMatterDeviceInfo> {
     const vendorIdResult = await this.readAttribute(
       new ClusterId(BasicInformationCluster.id),
       new AttributeId(BasicInformationCluster.attributes.vendorId.id),
@@ -501,10 +505,8 @@ export class MatterController {
       new EndpointNumber(0),
     );
 
-    const vendorId =
-      vendorIdResult[0]["ReportDataMessage"]["AttributeReportIBs"][0][
-        "AttributeReportIB"
-      ]["AttributeDataIB"]["Data"];
+    const vendorId = (vendorIdResult[0] as any).ReportDataMessage
+      .AttributeReportIBs[0].AttributeReportIB.AttributeDataIB.Data;
 
     const productIdResult = await this.readAttribute(
       new ClusterId(BasicInformationCluster.id),
@@ -513,14 +515,75 @@ export class MatterController {
       new EndpointNumber(0),
     );
 
-    const productId =
-      productIdResult[0]["ReportDataMessage"]["AttributeReportIBs"][0][
-        "AttributeReportIB"
-      ]["AttributeDataIB"]["Data"];
+    const productId = (productIdResult[0] as any).ReportDataMessage
+      .AttributeReportIBs[0].AttributeReportIB.AttributeDataIB.Data;
 
     return {
       vendorId,
       productId,
     };
+  }
+
+  /**
+   * Calls the `descriptor server-list` cluster command and parses the result
+   * @param nodeId the node ID of the Matter device, as saved locally in the Matter controller
+   * @returns {Promise<MatterAvailableClusters>} the parsed result of the command
+   */
+  async getDeviceAvailableClusters(nodeId: NodeId): Promise<DbMatterClusters> {
+    // cycle on endpoints to discover available clusters
+    // TODO: this could maybe be done in a more programmatic way, but still not sure how
+    //       we could maybe use the descriptor parts-list command
+    let endpointId = 0;
+    const availableClusters: DbMatterClusters = {};
+    let endpointFound = true;
+
+    while (endpointFound) {
+      try {
+        const descriptorResult = await this.readAttribute(
+          new ClusterId(DescriptorCluster.id),
+          new AttributeId(DescriptorCluster.attributes.serverList.id),
+          nodeId,
+          new EndpointNumber(endpointId),
+        );
+
+        const ibs = (descriptorResult[0] as any).ReportDataMessage
+          .AttributeReportIBs;
+
+        if (!ibs || ibs.length === 0) {
+          throw new Error("No AttributeReportIBs found");
+        }
+
+        // this is the status reported if the endpioint is not found
+        // we shouldn't need this if we check for AttributeDataIB in the loop
+        // if (ibs[0]["AttributeReportIB"]["AttributeStatusIB"]["StatusIB"]["status"] === "0x7f") {
+        //   throw new Error("Attribute not found");
+        // }
+
+        for (const ib of ibs) {
+          const dataIb = ib.AttributeReportIB.AttributeDataIB;
+          if (!dataIb) {
+            throw new Error("No AttributeDataIB found");
+          }
+
+          const data = dataIb.Data;
+          if (typeof data === "number") {
+            availableClusters[data] = {
+              clusterId: data,
+              endpointId,
+            };
+          }
+        }
+
+        endpointId++;
+      } catch (error) {
+        this.matterControllerLogger.warn(
+          `getDeviceAvailableClusters: endpoint ${endpointId} not found`,
+          error,
+        );
+        endpointFound = false;
+      }
+    }
+
+    return availableClusters;
   }
 }

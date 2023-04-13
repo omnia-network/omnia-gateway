@@ -1,10 +1,10 @@
-import * as WoT from "wot-typescript-definitions";
-import fetch from "node-fetch";
-import { MatterController } from "../matter-controller/controller.js";
+import { OnOffCluster } from "@project-chip/matter.js";
 import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
-import { OnOffCluster } from "@project-chip/matter.js/dist/cjs/cluster/OnOffCluster.js";
-import { NodeId } from "@project-chip/matter.js/dist/dts/common/NodeId";
 import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
+import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
+import fetch from "node-fetch";
+import * as WoT from "wot-typescript-definitions";
+import { MatterController } from "../matter-controller/controller.js";
 
 export class WotDevice {
   public thing: WoT.ExposedThing;
@@ -110,7 +110,7 @@ export class WotDevice {
     inputData?: WoT.InteractionOutput,
     _options?: WoT.InteractionOptions,
   ) {
-    let dataValue: WoT.DataSchemaValue;
+    let dataValue: WoT.DataSchemaValue | undefined;
     if (inputData) {
       dataValue = await inputData.value();
     }

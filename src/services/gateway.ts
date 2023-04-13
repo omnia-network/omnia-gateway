@@ -1,22 +1,28 @@
-import { WotDevice } from "../thngs/wot-device.js";
-import http from "http";
-import { Servient } from "@node-wot/core";
-import bindingHttp from "@node-wot/binding-http";
-import { v4 } from "uuid";
 import { existsSync, mkdirSync } from "fs";
+import http from "http";
+import bindingHttp from "@node-wot/binding-http";
+import { Servient } from "@node-wot/core";
+import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
+import { v4 } from "uuid";
 // import { omnia_backend } from "./canisters/omnia_backend/index.js";
-import { MatterController } from "../matter-controller/controller.js";
 import { ENV_VARIABLES } from "../constants/environment.js";
+import { MatterController } from "../matter-controller/controller.js";
 // import {
 //   // IdentifyCluster,
 //   OnOffCluster
 // } from "@project-chip/matter.js";
 // TODO: fix types for these imports
 // import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
-import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 // import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
+import {
+  CHIPParsedResult,
+  DbDevice,
+  MatterClusterId,
+  OmniaGatewayOptions,
+} from "../models";
+import { WotDevice } from "../thngs/wot-device.js";
+import { getCluster } from "../utils/matter-clusters.js";
 import { Database } from "./local-db.js";
-import { CHIPParsedResult, OmniaGatewayOptions } from "../models";
 
 const WEB_SERVER_PORT = 3000;
 const TD_DIRECTORY_URI = "";
@@ -65,28 +71,36 @@ export class OmniaGateway {
                   nodeId: nodeId,
                   ...requestBody,
                 };
-                const pairResult = await this.pairDevice(pairingInfo);
+                await this.pairDevice(pairingInfo);
 
                 // get device info from matter controller
                 const deviceInfo = await this._matterController.getDeviceInfo(
                   new NodeId(BigInt(nodeId)),
                 );
 
+                // get device clusters from matter controller
+                const deviceClusters =
+                  await this._matterController.getDeviceAvailableClusters(
+                    new NodeId(BigInt(nodeId)),
+                  );
+
                 // TODO: register device on backend and get device id
                 // for now, we use a random uuid as device id
                 const deviceId = v4();
-                this._localDb.storeCommissionedDevice(deviceId, {
-                  matterNodeId: nodeId,
-                  matterData: {
-                    ...deviceInfo,
-                    pairingCode: requestBody.payload,
-                    pairingResult: pairResult,
+                const device = await this._localDb.storeCommissionedDevice(
+                  deviceId,
+                  {
+                    id: deviceId,
+                    matterNodeId: nodeId,
+                    matterInfo: {
+                      ...deviceInfo,
+                      pairingCode: requestBody.payload,
+                    },
+                    matterClusters: deviceClusters,
                   },
-                });
+                );
 
-                // TODO: get device info and use it to create TM
-                const thingModel = this.generateThingModel(deviceId);
-                this.exposeThing(thingModel, nodeId);
+                this.exposeDevice(device);
 
                 res.writeHead(200, { "Content-Type": "text/plain" });
                 res.write("Device paired");
@@ -145,7 +159,7 @@ export class OmniaGateway {
     this._wotNamespace = await this._wotServient.start();
 
     const db = await this._localDb.start();
-    for (const deviceId in db["commissionedDevices"]) {
+    for (const deviceId in db.commissionedDevices) {
       try {
         const localDeviceData = await this._localDb.getCommissionedDevice(
           deviceId,
@@ -158,15 +172,15 @@ export class OmniaGateway {
 
         // just check if we're talking to the same device
         if (
-          deviceInfo.productId !== localDeviceData.matterData.productId ||
-          deviceInfo.vendorId !== localDeviceData.matterData.vendorId
+          deviceInfo.productId !== localDeviceData.matterInfo.productId ||
+          deviceInfo.vendorId !== localDeviceData.matterInfo.vendorId
         ) {
+          // should never happen
           throw new Error("Device is not the same");
         }
 
         // expose the device if all checks passed
-        const thingModel = this.generateThingModel(deviceId);
-        this.exposeThing(thingModel, localDeviceData.matterNodeId);
+        this.exposeDevice(localDeviceData);
       } catch (err) {
         console.error(err);
         console.log(
@@ -179,7 +193,10 @@ export class OmniaGateway {
     }
   }
 
-  private async pairDevice(pairingInfo): Promise<CHIPParsedResult> {
+  private async pairDevice(pairingInfo: {
+    nodeId: number;
+    payload: string;
+  }): Promise<CHIPParsedResult> {
     const deviceNodeId = new NodeId(BigInt(pairingInfo.nodeId));
 
     const pairDeviceResult = await this._matterController.pairDevice(
@@ -194,12 +211,12 @@ export class OmniaGateway {
     return pairDeviceResult;
   }
 
-  private generateThingModel(deviceId: string): Record<string, unknown> {
-    return {
+  private generateThingModel(device: DbDevice): Record<string, unknown> {
+    const model = {
       "@context": ["https://www.w3.org/2019/wot/td/v1", { "@language": "en" }],
       "@type": "",
-      id: `urn:uuid:${deviceId}`,
-      title: deviceId,
+      id: `urn:uuid:${device.id}`,
+      title: device.id,
       description: "",
       securityDefinitions: {
         "": {
@@ -207,33 +224,55 @@ export class OmniaGateway {
         },
       },
       security: "",
-      properties: {
-        onoff: {
-          title: "OnOff Matter Cluster Attributes",
-          description: "Implementation of the OnOff Matter Cluster Attributes",
-        },
-      },
-      actions: {
-        onoff: {
-          title: "OnOff Matter Cluster Commands",
-          description: "Implementation of the OnOff Matter Cluster Commands",
-        },
-      },
+      properties: {},
+      actions: {},
     };
+
+    for (const clusterId in device.matterClusters) {
+      // const cluster = device.matterClusters[clusterId];
+
+      const c = getCluster(clusterId as MatterClusterId);
+      if (!c) {
+        // TODO: handle this error
+        continue;
+      }
+
+      // if (c["attribute"]) {
+      //   if (typeof c["attribute"] === "object") {
+      //     model.properties[clusterId] = {
+
+      //     };
+      //   }
+      // }
+
+      // if (c["command"]) {
+      //   if (typeof c["command"] === "object") {
+      //     model.actions[clusterId] = {
+      //       input: {
+      //         properties: {
+
+      //         }
+      //       },
+      //       output: {},
+      //     }
+      //   }
+      // }
+    }
+
+    return model;
   }
 
-  private async exposeThing(
-    thingModel: Record<string, unknown>,
-    nodeId: number,
-  ): Promise<void> {
-    const device = new WotDevice(
+  private async exposeDevice(device: DbDevice): Promise<void> {
+    const model = this.generateThingModel(device);
+
+    const wotDevice = new WotDevice(
       this._wotNamespace,
-      thingModel,
+      model,
       this._matterController,
-      new NodeId(BigInt(nodeId)),
+      new NodeId(BigInt(device.matterNodeId)),
       TD_DIRECTORY_URI,
     );
-    await device.startDevice();
+    await wotDevice.startDevice();
   }
 
   private initializeDataFolder(): void {
