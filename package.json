@@ -57,7 +57,6 @@
     "@project-chip/matter.js": "^0.2.1",
     "ajv": "^6.12.6",
     "dotenv": "^16.0.3",
-    "isomorphic-fetch": "^3.0.0",
     "lowdb": "4.0.1",
     "node-fetch": "^3.3.0",
     "tslib": "~2.3.1",

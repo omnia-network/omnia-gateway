@@ -12,7 +12,7 @@ export class IcAgent {
   async start() {
     const initGatewayRes = await callMethodWithChallenge((nonce) => {
       return this._actor.initGateway(nonce);
-    }, "ciao");
+    }, "localhost");
     console.log(initGatewayRes);
   }
 }
