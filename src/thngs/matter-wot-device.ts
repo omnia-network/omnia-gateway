@@ -88,11 +88,11 @@ export class MatterWotDevice {
   private initializeProperties() {
     if (typeof this.td.properties === "object") {
       for (const [property, _info] of Object.entries(this.td.properties)) {
-        console.log(
-          "Registered default property handler for: ",
-          property,
-          _info,
-        );
+        // console.log(
+        //   "Registered default property handler for:",
+        //   property,
+        //   _info,
+        // );
         this.thing.setPropertyReadHandler(
           property,
           this.propertyReadHandler.bind(this, property),
@@ -104,7 +104,7 @@ export class MatterWotDevice {
   private initializeActions() {
     if (typeof this.td.actions === "object") {
       for (const [action, _info] of Object.entries(this.td.actions)) {
-        console.log("Registered default action handler for: ", action, _info);
+        // console.log("Registered default action handler for:", action, _info);
         this.thing.setActionHandler(
           action,
           this.actionHandler.bind(this, action),

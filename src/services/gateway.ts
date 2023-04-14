@@ -53,7 +53,7 @@ export class OmniaGateway {
             switch (requestBody.command) {
               case "pair": {
                 // think about how to generate nodeId, randomness could work instead of handling incremental values
-                const nodeId = Math.floor(Math.random() * 255) + 1;
+                const nodeId = Math.floor(Math.random() * 65525) + 1;
                 delete requestBody.command;
 
                 // the pairing info received by the backend
