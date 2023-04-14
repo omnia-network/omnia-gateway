@@ -494,33 +494,39 @@ export class MatterController {
    * @throws {Error} if somthing goes wrong while calling the `basicinformation` cluster command
    */
   async getDeviceInfo(nodeId: NodeId): Promise<MatterDeviceInfo> {
-    const vendorIdResult = await this.readAttribute(
-      new ClusterId(BasicInformationCluster.id),
-      new AttributeId(BasicInformationCluster.attributes.vendorId.id),
-      nodeId,
-      new EndpointNumber(0),
-    );
-
-    const vendorId =
-      vendorIdResult[0]["ReportDataMessage"]["AttributeReportIBs"][0][
-        "AttributeReportIB"
-      ]["AttributeDataIB"]["Data"];
-
-    const productIdResult = await this.readAttribute(
-      new ClusterId(BasicInformationCluster.id),
-      new AttributeId(BasicInformationCluster.attributes.productId.id),
-      nodeId,
-      new EndpointNumber(0),
-    );
-
-    const productId =
-      productIdResult[0]["ReportDataMessage"]["AttributeReportIBs"][0][
-        "AttributeReportIB"
-      ]["AttributeDataIB"]["Data"];
-
+    if (ENV_VARIABLES.USE_MATTER_CONTROLLER) {
+      const vendorIdResult = await this.readAttribute(
+        new ClusterId(BasicInformationCluster.id),
+        new AttributeId(BasicInformationCluster.attributes.vendorId.id),
+        nodeId,
+        new EndpointNumber(0),
+      );
+  
+      const vendorId =
+        vendorIdResult[0]["ReportDataMessage"]["AttributeReportIBs"][0][
+          "AttributeReportIB"
+        ]["AttributeDataIB"]["Data"];
+  
+      const productIdResult = await this.readAttribute(
+        new ClusterId(BasicInformationCluster.id),
+        new AttributeId(BasicInformationCluster.attributes.productId.id),
+        nodeId,
+        new EndpointNumber(0),
+      );
+  
+      const productId =
+        productIdResult[0]["ReportDataMessage"]["AttributeReportIBs"][0][
+          "AttributeReportIB"
+        ]["AttributeDataIB"]["Data"];
+  
+      return {
+        vendorId,
+        productId,
+      };
+    }
     return {
-      vendorId,
-      productId,
-    };
+      vendorId: 0,
+      productId: 0
+    }
   }
 }
