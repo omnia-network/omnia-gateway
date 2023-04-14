@@ -4,25 +4,16 @@ import bindingHttp from "@node-wot/binding-http";
 import { Servient } from "@node-wot/core";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 import { v4 } from "uuid";
-// import { omnia_backend } from "./canisters/omnia_backend/index.js";
 import { ENV_VARIABLES } from "../constants/environment.js";
 import { MatterController } from "../matter-controller/controller.js";
-// import {
-//   // IdentifyCluster,
-//   OnOffCluster
-// } from "@project-chip/matter.js";
-// TODO: fix types for these imports
-// import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
-// import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
-import {
+import { MatterWotDevice } from "../thngs/matter-wot-device.js";
+import { getMappedCluster } from "../utils/matter-wot-mapping.js";
+import { Database } from "./local-db.js";
+import type {
   CHIPParsedResult,
   DbDevice,
-  MatterClusterId,
   OmniaGatewayOptions,
 } from "../models";
-import { WotDevice } from "../thngs/wot-device.js";
-import { getCluster } from "../utils/matter-clusters.js";
-import { Database } from "./local-db.js";
 
 const WEB_SERVER_PORT = 3000;
 const TD_DIRECTORY_URI = "";
@@ -211,7 +202,7 @@ export class OmniaGateway {
     return pairDeviceResult;
   }
 
-  private generateThingModel(device: DbDevice): Record<string, unknown> {
+  private generateThingModel(device: DbDevice): WoT.ExposedThingInit {
     const model = {
       "@context": ["https://www.w3.org/2019/wot/td/v1", { "@language": "en" }],
       "@type": "",
@@ -229,34 +220,10 @@ export class OmniaGateway {
     };
 
     for (const clusterId in device.matterClusters) {
-      // const cluster = device.matterClusters[clusterId];
+      const mappedCluster = getMappedCluster(clusterId);
 
-      const c = getCluster(clusterId as MatterClusterId);
-      if (!c) {
-        // TODO: handle this error
-        continue;
-      }
-
-      // if (c["attribute"]) {
-      //   if (typeof c["attribute"] === "object") {
-      //     model.properties[clusterId] = {
-
-      //     };
-      //   }
-      // }
-
-      // if (c["command"]) {
-      //   if (typeof c["command"] === "object") {
-      //     model.actions[clusterId] = {
-      //       input: {
-      //         properties: {
-
-      //         }
-      //       },
-      //       output: {},
-      //     }
-      //   }
-      // }
+      Object.assign(model.properties, mappedCluster.properties);
+      Object.assign(model.actions, mappedCluster.actions);
     }
 
     return model;
@@ -265,11 +232,11 @@ export class OmniaGateway {
   private async exposeDevice(device: DbDevice): Promise<void> {
     const model = this.generateThingModel(device);
 
-    const wotDevice = new WotDevice(
+    const wotDevice = new MatterWotDevice(
       this._wotNamespace,
       model,
       this._matterController,
-      new NodeId(BigInt(device.matterNodeId)),
+      device,
       TD_DIRECTORY_URI,
     );
     await wotDevice.startDevice();

@@ -1,16 +1,14 @@
 // this script parses the Matter clusters from the Matter repo
 // and puts them in a JSON file, organized by cluster ID
 
-import { config } from "dotenv";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
 import { join } from "path";
 // import { convert } from "xmlbuilder2";
 import { xml2js } from "xml-js";
-
-// we assume this script is called from the root of the project, where the .env file is located
-config();
-
-const { CONNECTEDHOMEIP_ROOT = "", OUTPUT_JSON_FILE_PATH = "" } = process.env;
+import {
+  CONNECTEDHOMEIP_ROOT,
+  OUTPUT_JSON_FILE_PATH,
+} from "./utils/environment.js";
 
 const main = () => {
   const clustersPath = join(

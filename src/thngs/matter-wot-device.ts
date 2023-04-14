@@ -1,32 +1,43 @@
-import { OnOffCluster } from "@project-chip/matter.js";
+import { AttributeId } from "@project-chip/matter.js/dist/cjs/common/AttributeId.js";
 import { ClusterId } from "@project-chip/matter.js/dist/cjs/common/ClusterId.js";
 import { EndpointNumber } from "@project-chip/matter.js/dist/cjs/common/EndpointNumber.js";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 import fetch from "node-fetch";
 import * as WoT from "wot-typescript-definitions";
 import { MatterController } from "../matter-controller/controller.js";
+import type {
+  DbDevice,
+  WotActionHandlerCommand,
+  WotPropertyHandlerAttribute,
+} from "../models/index.js";
 
-export class WotDevice {
-  public thing: WoT.ExposedThing;
-  public deviceWoT: typeof WoT;
-  public td: WoT.ExposedThingInit;
+/**
+ * A WoT device that is connected to a Matter device.
+ * It exposes the WoT Thing Description of the Matter device.
+ */
+export class MatterWotDevice {
+  thing: WoT.ExposedThing;
+  deviceWoT: typeof WoT;
+  td: WoT.ExposedThingInit;
 
-  private thingModel: WoT.ExposedThingInit;
+  thingModel: WoT.ExposedThingInit;
+  private nodeId: NodeId;
   private tdDirectory: string;
   private matterController: MatterController;
-  private nodeId: NodeId;
+  private localDevice: DbDevice;
 
   constructor(
     deviceWoT: typeof WoT,
     thingModel: WoT.ExposedThingInit,
     matterController: MatterController,
-    nodeId: NodeId,
+    localDevice: DbDevice,
     tdDirectory?: string,
   ) {
     this.deviceWoT = deviceWoT;
     this.thingModel = thingModel;
     this.matterController = matterController;
-    this.nodeId = nodeId;
+    this.localDevice = localDevice;
+    this.nodeId = new NodeId(BigInt(localDevice.matterNodeId));
     if (tdDirectory) this.tdDirectory = tdDirectory;
   }
 
@@ -77,14 +88,14 @@ export class WotDevice {
   private initializeProperties() {
     if (typeof this.td.properties === "object") {
       for (const [property, _info] of Object.entries(this.td.properties)) {
-        // console.log(
-        //   "Registered default property read handler for: ",
-        //   property,
-        //   _info,
-        // );
+        console.log(
+          "Registered default property handler for: ",
+          property,
+          _info,
+        );
         this.thing.setPropertyReadHandler(
-          `${property}`,
-          this.defaultPropertyReadHandler,
+          property,
+          this.propertyReadHandler.bind(this, property),
         );
       }
     }
@@ -93,35 +104,64 @@ export class WotDevice {
   private initializeActions() {
     if (typeof this.td.actions === "object") {
       for (const [action, _info] of Object.entries(this.td.actions)) {
-        // console.log("Registered default action handler for: ", action, _info);
-        this.thing.setActionHandler(`${action}`, async (inputData) =>
-          this.defaultActionHandler(inputData),
+        console.log("Registered default action handler for: ", action, _info);
+        this.thing.setActionHandler(
+          action,
+          this.actionHandler.bind(this, action),
         );
       }
     }
   }
 
-  private async defaultPropertyReadHandler(_options?: WoT.InteractionOptions) {
-    console.log("Default property");
-    return "Default property";
+  private async propertyReadHandler(
+    property: string,
+    _options?: WoT.InteractionOptions,
+  ) {
+    if (!_options?.uriVariables) {
+      throw new Error("No uriVariables provided");
+    }
+
+    const uriVariables = _options.uriVariables as WotPropertyHandlerAttribute;
+
+    const clusterId = parseInt(property, 10);
+    const attributeId = uriVariables.attribute;
+    const matterCluster = this.localDevice.matterClusters[clusterId];
+    if (!matterCluster) {
+      throw new Error("No cluster found");
+    }
+
+    const readResult = await this.matterController.readAttribute(
+      new ClusterId(matterCluster.clusterId),
+      new AttributeId(attributeId),
+      this.nodeId,
+      new EndpointNumber(matterCluster.endpointId),
+    );
+
+    return readResult;
   }
 
-  private async defaultActionHandler(
+  private async actionHandler(
+    action: string,
     inputData?: WoT.InteractionOutput,
     _options?: WoT.InteractionOptions,
   ) {
-    let dataValue: WoT.DataSchemaValue | undefined;
-    if (inputData) {
-      dataValue = await inputData.value();
+    if (!inputData) {
+      throw new Error("No inputData provided");
     }
-    console.log("Action:", dataValue);
+    const dataValue = (await inputData.value()) as WotActionHandlerCommand;
+
+    const clusterId = parseInt(action, 10);
+    const matterCluster = this.localDevice.matterClusters[clusterId];
+    if (!matterCluster) {
+      throw new Error("No cluster found");
+    }
 
     const commandResult = await this.matterController.sendCommand(
-      new ClusterId(OnOffCluster.id),
-      (dataValue as any).command,
-      {},
+      new ClusterId(matterCluster.clusterId),
+      dataValue.command.id,
+      dataValue.command.payload || {},
       this.nodeId,
-      new EndpointNumber(1),
+      new EndpointNumber(matterCluster.endpointId),
     );
 
     return commandResult;
