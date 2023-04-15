@@ -1,6 +1,6 @@
 import { join } from "path";
-import { Low, JSONFile } from "lowdb";
-import { LocalDb } from "../models";
+import { JSONFile, Low } from "lowdb";
+import { DbDevice, LocalDb } from "../models";
 
 const DB_PATH = `${process.cwd()}/data`;
 
@@ -25,24 +25,25 @@ export class Database {
 
   async storeCommissionedDevice(
     deviceId: keyof LocalDb["commissionedDevices"],
-    pairingInfo: LocalDb["commissionedDevices"][string],
-  ): Promise<void> {
-    this.db.data["commissionedDevices"][deviceId] = pairingInfo;
-    console.log(this.db.data["commissionedDevices"]);
+    device: DbDevice,
+  ): Promise<DbDevice> {
+    this.db.data!.commissionedDevices[deviceId] = device;
     await this.db.write();
+
+    return device;
   }
 
   async getCommissionedDevice(
     deviceId: keyof LocalDb["commissionedDevices"],
-  ): Promise<LocalDb["commissionedDevices"][string]> {
-    const raw = this.db.data["commissionedDevices"][deviceId];
+  ): Promise<DbDevice> {
+    const raw = this.db.data!.commissionedDevices[deviceId];
     return raw;
   }
 
   async removeCommissionedDevice(
     deviceId: keyof LocalDb["commissionedDevices"],
   ): Promise<void> {
-    delete this.db.data["commissionedDevices"][deviceId];
+    delete this.db.data!.commissionedDevices[deviceId];
     await this.db.write();
   }
 }
