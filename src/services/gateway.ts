@@ -2,8 +2,9 @@ import { existsSync, mkdirSync } from "fs";
 import bindingHttp from "@node-wot/binding-http";
 import { Servient } from "@node-wot/core";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
+import fetch from "node-fetch";
 import { v4 } from "uuid";
-import { omnia_backend } from "../canisters/omnia_backend/index.js";
+import { createOmniaBackend } from "../canisters/omnia_backend/index.js";
 import { ENV_VARIABLES } from "../constants/environment.js";
 import { MatterController } from "../matter-controller/controller.js";
 import { ProxyClient } from "../proxy/proxy-client.js";
@@ -54,8 +55,6 @@ export class OmniaGateway {
       );
     }
 
-    this._icAgent = new IcAgent(omnia_backend);
-
     this.wotServientPort = options.wotServientPort;
     this._wotServient = new Servient();
 
@@ -77,6 +76,17 @@ export class OmniaGateway {
       await this._proxyClient.connect();
     }
 
+    // the IC agent must be instantiated after the proxy client, because it can use the proxy fetch
+    const omnia_backend = createOmniaBackend({
+      agentOptions: {
+        host: ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
+        fetch: this._useProxy ? this._proxyClient.proxyFetch.bind(this._proxyClient) : fetch,
+      },
+    });
+    this._icAgent = new IcAgent(
+      omnia_backend,
+      this._useProxy ? this._proxyClient.proxyFetch.bind(this._proxyClient) : fetch,
+    );
     await this._icAgent.start();
 
     // we must ensure that the data folder exists before starting sub services

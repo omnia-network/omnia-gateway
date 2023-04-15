@@ -5,7 +5,7 @@ import { ENV_VARIABLES } from "../../constants/environment.js";
 // Imports and re-exports candid interface
 import { idlFactory } from "./omnia_backend.did.js";
 export { idlFactory } from "./omnia_backend.did.js";
-// CANISTER_ID is replaced by webpack based on node environment
+
 export const canisterId = ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID;
 
 /**
@@ -13,14 +13,10 @@ export const canisterId = ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID;
  * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig} | { agent?: import("@dfinity/agent").Agent; actorOptions?: import("@dfinity/agent").ActorConfig }} [options]
  * @return {import("@dfinity/agent").ActorSubclass<import("./omnia_backend.did")._SERVICE>}
  */
-export const createActor = (canisterId, options = {}) => {
+export const createActor = (options = {}) => {
   const agent =
     options.agent ||
-    new HttpAgent({
-      ...options.agentOptions,
-      fetch: fetch,
-      host: ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
-    });
+    new HttpAgent(options.agentOptions);
 
   // Fetch root key for certificate validation during development
   if (ENV_VARIABLES.DFX_NETWORK !== "ic") {
@@ -56,7 +52,8 @@ export const createActor = (canisterId, options = {}) => {
 };
 
 /**
- * A ready-to-use agent for the omnia_backend canister
- * @type {import("@dfinity/agent").ActorSubclass<import("./omnia_backend.did")._SERVICE>}
+ * An agent creator for omnia_backend canister, with customizable agentOptions
+ * @param {import("@dfinity/agent").HttpAgentOptions} [agentOptions]
+ * @returns {import("@dfinity/agent").ActorSubclass<import("./omnia_backend.did")._SERVICE>}
  */
-export const omnia_backend = createActor(canisterId);
+export const createOmniaBackend = createActor;

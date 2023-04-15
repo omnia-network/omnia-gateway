@@ -1,7 +1,7 @@
 import { exec } from "child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { promisify } from "util";
-import fetch from "node-fetch";
+import fetch, { Request, Response } from "node-fetch";
 import { Database } from "../services/local-db.js";
 import { getLogger } from "../services/logger.js";
 import { getWgConfig } from "../utils/wg-config.js";
@@ -210,6 +210,8 @@ export class ProxyClient {
     } catch (e) {
       if (e.message.includes("wg0") && e.message.includes("already exists")) {
         // in this case, we have to delete the interface first
+        this.logger.warn("WireGuard interface already exists, deleting...");
+
         await this.stopWireguard();
 
         // now we can start the tunnel
@@ -248,5 +250,57 @@ export class ProxyClient {
 
   private async loadConfig(): Promise<void> {
     this._proxyConfig = await this.localDb.getProxyConfig();
+  }
+
+  /**
+   * A wrapper around the fetch function that manipulates the request to make it acceptable by the proxy server.
+   * @param args 
+   * @returns 
+   */
+  proxyFetch(...args: Parameters<typeof fetch>): Promise<Response> {
+    if (!this._proxyConfig) {
+      throw new Error("Proxy config not initialized");
+    }
+
+    const [urlArg, options] = args;
+
+    let destinationUrl: URL;
+
+    // we need to extract the url from the Request object,
+    // and put the base url in the headers and append the path to the proxy url
+    if (urlArg instanceof URL) {
+      destinationUrl = urlArg;
+    } else if (urlArg instanceof Request) {
+      destinationUrl = new URL(urlArg.url);
+    } else {
+      destinationUrl = new URL(urlArg);
+    }
+
+    // add the proxy id to the headers
+    if (options && options.headers) {
+      // @ts-ignore
+      options.headers["X-Destination-Url"] = destinationUrl.origin;
+      // @ts-ignore
+      // not sure if setting the Host header is the best way to avoid host errors,
+      // maybe better to do it directly in the proxy server
+      // TODO: investigate
+      options.headers.Host = destinationUrl.host;
+    } else {
+      args[1] = {
+        ...options,
+        headers: {
+          "X-Destination-Url": destinationUrl.origin,
+          // same as in previous case, see comment above
+          Host: destinationUrl.host,
+        },
+      };
+    }
+
+    args[0] = new URL(
+      `${destinationUrl.pathname}${destinationUrl.search}`,
+      `http://${this._proxyConfig.proxyAddress}`,
+    ).toString();
+
+    return fetch(...args)
   }
 }

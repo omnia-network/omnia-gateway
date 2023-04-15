@@ -58,7 +58,7 @@
     "generate:matter-wot-mapping": "CLUSTERS_JSON_FILE_PATH=./matter/clusters.json MATTER_WOT_MAPPING_FILE_PATH=./matter/wot-mapping.json npx ts-node --esm ./scripts/ts/generate-matter-wot-mapping.ts"
   },
   "dependencies": {
-    "@dfinity/agent": "^0.15.5",
+    "@dfinity/agent": "^0.15.1",
     "@dfinity/principal": "^0.15.1",
     "@node-wot/binding-http": "0.8.x",
     "@node-wot/core": "0.8.x",

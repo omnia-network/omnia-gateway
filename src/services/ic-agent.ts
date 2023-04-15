@@ -1,20 +1,23 @@
 // eslint-disable-next-line import/named
 import { ActorSubclass } from "@dfinity/agent";
+import fetch from "node-fetch";
 // eslint-disable-next-line import/named
 import { _SERVICE } from "../canisters/omnia_backend/omnia_backend.did.js";
 import { httpNonceChallenge } from "../utils/nonce-challenge.js";
 
 export class IcAgent {
   private _actor: ActorSubclass<_SERVICE>;
+  private _fetch: typeof fetch;
 
-  constructor(actor: ActorSubclass<_SERVICE>) {
+  constructor(actor: ActorSubclass<_SERVICE>, customFetch: typeof fetch) {
     this._actor = actor;
+    this._fetch = customFetch;
   }
 
   async start() {
     const initGatewayRes = await callMethodWithChallenge((nonce) => {
       return this._actor.initGateway(nonce);
-    }, "localhost");
+    }, this._fetch);
     console.log("Gateway principal ID: ", initGatewayRes);
   }
 
@@ -48,8 +51,8 @@ export class IcAgent {
 
 const callMethodWithChallenge = async <T>(
   callback: (nonce: string) => Promise<T>,
-  remoteIp: string,
+  customFetch: typeof fetch,
 ): Promise<T> => {
-  const nonce = await httpNonceChallenge(remoteIp);
+  const nonce = await httpNonceChallenge(customFetch);
   return callback(nonce);
 };
