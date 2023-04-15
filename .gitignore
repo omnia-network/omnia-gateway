@@ -30,3 +30,6 @@ build/
 
 # local data
 data/
+
+# Typescript
+tsconfig.tsbuildinfo

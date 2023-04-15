@@ -1,4 +1,4 @@
-import { format, transports, createLogger, Logger } from "winston";
+import { Logger, createLogger, format, transports } from "winston";
 
 const LOGS_PATH = `${process.cwd()}/logs`;
 

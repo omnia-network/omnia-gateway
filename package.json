@@ -7,6 +7,8 @@
   },
   "type": "module",
   "devDependencies": {
+    "@babel/core": "^7.21.4",
+    "@babel/eslint-parser": "^7.21.3",
     "@babel/plugin-syntax-import-assertions": "^7.20.0",
     "@babel/preset-env": "^7.20.2",
     "@babel/preset-typescript": "^7.18.6",
@@ -19,11 +21,11 @@
     "@types/supertest": "^2.0.12",
     "@types/uuid": "^9.0.1",
     "@types/ws": "^8.5.4",
-    "@typescript-eslint/eslint-plugin": "~5.3.0",
     "@typescript-eslint/parser": "~5.3.0",
     "babel-jest": "^29.3.1",
-    "eslint": "~8.1.0",
+    "eslint": "^8.25.0",
     "eslint-config-prettier": "~8.3.0",
+    "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-jest": "~25.2.2",
     "http-proxy-cli": "^2.1.0",
     "jest": "^28.1.3",
@@ -31,8 +33,11 @@
     "remote": "^0.2.6",
     "rimraf": "~3.0.2",
     "supertest": "^6.3.3",
+    "ts-node": "^10.9.1",
     "tsutils": "~3.21.0",
-    "typescript": "~4.4.4"
+    "typescript": "~4.4.4",
+    "wot-thing-model-types": "^1.1.0-13-October-2022",
+    "xml-js": "^1.6.11"
   },
   "scripts": {
     "start": "node build/src/main.js",
@@ -47,7 +52,9 @@
     "test:coverage": "jest --coverage",
     "prettier": "prettier --config .prettierrc --write .",
     "test:watch": "jest --watch",
-    "generate:types": "cd scripts && ./generate-omnia-backend-types.sh"
+    "generate:types": "cd scripts && ./cli/generate-omnia-backend-types.sh",
+    "generate:matter-clusters": "OUTPUT_JSON_FILE_PATH=./matter/clusters.json npx ts-node --esm ./scripts/ts/generate-matter-clusters.ts",
+    "generate:matter-wot-mapping": "CLUSTERS_JSON_FILE_PATH=./matter/clusters.json MATTER_WOT_MAPPING_FILE_PATH=./matter/wot-mapping.json npx ts-node --esm ./scripts/ts/generate-matter-wot-mapping.ts"
   },
   "dependencies": {
     "@dfinity/agent": "^0.15.5",
@@ -57,7 +64,6 @@
     "@project-chip/matter.js": "^0.2.1",
     "ajv": "^6.12.6",
     "dotenv": "^16.0.3",
-    "isomorphic-fetch": "^3.0.0",
     "lowdb": "4.0.1",
     "node-fetch": "^3.3.0",
     "tslib": "~2.3.1",
