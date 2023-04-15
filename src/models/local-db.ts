@@ -1,3 +1,5 @@
+import { ProxyConfig } from "./proxy";
+
 export type DbMatterDeviceInfo = {
   vendorId: number;
   productId: number;
@@ -26,4 +28,5 @@ export type LocalDb = {
   commissionedDevices: {
     [key: string]: DbDevice;
   };
+  proxyConfig?: ProxyConfig;
 };

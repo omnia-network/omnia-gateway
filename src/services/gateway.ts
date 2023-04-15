@@ -6,6 +6,7 @@ import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 import { v4 } from "uuid";
 import { ENV_VARIABLES } from "../constants/environment.js";
 import { MatterController } from "../matter-controller/controller.js";
+import { ProxyClient } from "../proxy/proxy-client.js";
 import { MatterWotDevice } from "../thngs/matter-wot-device.js";
 import { getMappedCluster } from "../utils/matter-wot-mapping.js";
 import { Database } from "./local-db.js";
@@ -35,7 +36,24 @@ export class OmniaGateway {
   //// Matter Controller
   private _matterController: MatterController;
 
+  //// Proxy
+  private _useProxy = false;
+  private _proxyClient: ProxyClient;
+
   constructor(options: OmniaGatewayOptions) {
+    // must come before other services are initialized
+    this._localDb = new Database();
+
+    if (options.useProxy) {
+      this._useProxy = options.useProxy;
+
+      this._proxyClient = new ProxyClient(
+        ENV_VARIABLES.OMNIA_PROXY_URL,
+        ENV_VARIABLES.OMNIA_PROXY_WG_ADDRESS,
+        this._localDb,
+      );
+    }
+
     this._icAgent = http.createServer((req, res) => {
       if (
         req.method === "POST" &&
@@ -121,8 +139,6 @@ export class OmniaGateway {
     this.wotServientPort = options.wotServientPort;
     this._wotServient = new Servient();
 
-    this._localDb = new Database();
-
     this._matterController = new MatterController(
       options.matterControllerChipWsPort,
       options.matterControllerChipToolPath,
@@ -132,6 +148,13 @@ export class OmniaGateway {
   async start(): Promise<void> {
     if (!this.wotServientPort) {
       throw new Error("WOT_SERVIENT_PORT not set");
+    }
+
+    // must come before other services start
+    const db = await this._localDb.start();
+
+    if (this._useProxy) {
+      await this._proxyClient.connect();
     }
 
     // we must ensure that the data folder exists before starting sub services
@@ -145,11 +168,13 @@ export class OmniaGateway {
     });
 
     this._wotServient.addServer(
-      new bindingHttp.HttpServer({ port: this.wotServientPort }),
+      new bindingHttp.HttpServer({
+        address: "0.0.0.0",
+        port: this.wotServientPort,
+      }),
     );
     this._wotNamespace = await this._wotServient.start();
 
-    const db = await this._localDb.start();
     for (const deviceId in db.commissionedDevices) {
       try {
         const localDeviceData = await this._localDb.getCommissionedDevice(
@@ -245,6 +270,15 @@ export class OmniaGateway {
   private initializeDataFolder(): void {
     if (!existsSync(DATA_FOLDER)) {
       mkdirSync(DATA_FOLDER);
+    }
+  }
+
+  async stop(): Promise<void> {
+    this._matterController.stop();
+    await this._wotServient.shutdown();
+
+    if (this._useProxy) {
+      await this._proxyClient.disconnect();
     }
   }
 }

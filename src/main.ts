@@ -7,6 +7,14 @@ const gateway = new OmniaGateway({
     ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT,
   ),
   matterControllerChipToolPath: ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
+  useProxy: ENV_VARIABLES.USE_PROXY,
 });
+
+// TODO: handle process termination
+// process.on('SIGINT', async () => {
+//   console.log("Caught interrupt signal");
+
+//   await gateway.stop();
+// });
 
 gateway.start();

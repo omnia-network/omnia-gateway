@@ -1,6 +1,6 @@
 import { join } from "path";
 import { JSONFile, Low } from "lowdb";
-import { DbDevice, LocalDb } from "../models";
+import { DbDevice, LocalDb, ProxyConfig } from "../models";
 
 const DB_PATH = `${process.cwd()}/data`;
 
@@ -45,5 +45,14 @@ export class Database {
   ): Promise<void> {
     delete this.db.data!.commissionedDevices[deviceId];
     await this.db.write();
+  }
+
+  async storeProxyConfig(config: ProxyConfig) {
+    this.db.data!.proxyConfig = config;
+    await this.db.write();
+  }
+
+  async getProxyConfig(): Promise<ProxyConfig | undefined> {
+    return this.db.data!.proxyConfig;
   }
 }

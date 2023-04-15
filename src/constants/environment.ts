@@ -18,4 +18,8 @@ export const ENV_VARIABLES = {
   WIFI_PASSWORD: process.env.WIFI_PASSWORD || "",
 
   SERVIENT_PORT: process.env.SERVIENT_PORT || "",
+
+  USE_PROXY: process.env.USE_PROXY === "true",
+  OMNIA_PROXY_URL: process.env.OMNIA_PROXY_URL || "",
+  OMNIA_PROXY_WG_ADDRESS: process.env.OMNIA_PROXY_WG_ADDRESS || "",
 };
