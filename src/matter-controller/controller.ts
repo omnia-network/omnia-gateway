@@ -501,7 +501,7 @@ export class MatterController {
     if (this.disableMatterController) {
       return {
         vendorId: 0,
-        productId: 0
+        productId: 0,
       };
     }
 

@@ -18,13 +18,31 @@ export class IcAgent {
     console.log("Gateway principal ID: ", initGatewayRes);
   }
 
-  async pollForUpdates() {
+  async pollForUpdates(): Promise<
+    | {
+        nodeId: number;
+        payload: string;
+      }
+    | undefined
+  > {
     try {
       const updates = await this._actor.getGatewayUpdates();
-      console.log(updates);
+      if (updates.length != 0 && updates[0].command == "pair") {
+        const nodeId = Math.floor(Math.random() * 65525) + 1;
+        const payload = updates[0].info.payload;
+        const managerPrincipalId = updates[0].virtual_persona_principal_id;
+
+        console.log(`Manager: ${managerPrincipalId} pairing new device`);
+        const pairingInfo = {
+          nodeId: nodeId,
+          payload: payload,
+        };
+        return pairingInfo;
+      }
     } catch (error) {
       console.error("Error fetching updates:", error);
     }
+    return;
   }
 }
 
