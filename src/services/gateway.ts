@@ -187,6 +187,8 @@ export class OmniaGateway {
         // TODO: we should also unpair the device from the controller in certain cases
       }
     }
+
+    setInterval(agent.pollForUpdates.bind(agent), 5000);
   }
 
   private async pairDevice(pairingInfo: {

@@ -499,7 +499,10 @@ export class MatterController {
    */
   async getDeviceInfo(nodeId: NodeId): Promise<DbMatterDeviceInfo> {
     if (this.disableMatterController) {
-      return Promise.resolve({} as DbMatterDeviceInfo);
+      return {
+        vendorId: 0,
+        productId: 0
+      };
     }
 
     const vendorIdResult = await this.readAttribute(

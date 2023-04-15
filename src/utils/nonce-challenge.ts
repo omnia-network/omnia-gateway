@@ -1,6 +1,6 @@
-import { ENV_VARIABLES } from "./../constants/environment.js";
 import crypto from "crypto";
 import fetch from "node-fetch";
+import { ENV_VARIABLES } from "./../constants/environment.js";
 
 const getNonce = (): string => {
   return crypto.randomBytes(16).toString("hex");
