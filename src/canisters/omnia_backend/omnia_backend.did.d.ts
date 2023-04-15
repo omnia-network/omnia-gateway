@@ -3,15 +3,6 @@
 import type { Principal } from "@dfinity/principal";
 import type { ActorMethod } from "@dfinity/agent";
 
-export interface DeviceRegistrationInput {
-  device_name: string;
-  env_uid: string;
-  gateway_uid: string;
-}
-export interface DeviceRegistrationResult {
-  device_name: string;
-  device_uid: string;
-}
 export interface EnvironmentCreationInput {
   env_name: string;
 }
@@ -20,38 +11,66 @@ export interface EnvironmentCreationResult {
   env_name: string;
 }
 export interface EnvironmentInfo {
-  env_manager_principal_id: string;
   env_uid: string;
-  env_name: string;
 }
 export interface GatewayRegistrationInput {
   gateway_name: string;
   env_uid: string;
-  gateway_uid: string;
 }
-export interface GatewayRegistrationResult {
+export interface HttpRequest {
+  url: string;
+  method: string;
+  body: [] | [Uint8Array | number[]];
+  headers: Array<[string, string]>;
+  upgrade: [] | [boolean];
+}
+export interface HttpResponse {
+  body: Uint8Array | number[];
+  headers: Array<[string, string]>;
+  upgrade: [] | [boolean];
+  streaming_strategy: [] | [string];
+  status_code: number;
+}
+export interface InitializedGatewayValue {
+  principal_id: string;
+}
+export interface PairingInfo {
+  payload: string;
+}
+export interface RegisteredGatewayValue {
   gateway_name: string;
-  gateway_uid: string;
+  gateway_ip: string;
+  env_uid: string;
 }
-export interface UserProfile {
-  user_principal_id: string;
-  environment_uid: [] | [string];
+export type Result = { Ok: EnvironmentCreationResult } | { Err: string };
+export type Result_1 = { Ok: Array<InitializedGatewayValue> } | { Err: string };
+export type Result_2 = { Ok: VirtualPersonaValue } | { Err: string };
+export type Result_3 = { Ok: Array<RegisteredGatewayValue> } | { Err: string };
+export type Result_4 = { Ok: string } | { Err: string };
+export type Result_5 = { Ok: RegisteredGatewayValue } | { Err: string };
+export type Result_6 = { Ok: EnvironmentInfo } | { Err: string };
+export interface UpdateValue {
+  info: PairingInfo;
+  command: string;
+  virtual_persona_principal_id: string;
+  virtual_persona_ip: string;
+}
+export interface VirtualPersonaValue {
+  manager_env_uid: [] | [string];
+  user_env_uid: [] | [string];
+  virtual_persona_principal_id: string;
+  virtual_persona_ip: string;
 }
 export interface _SERVICE {
-  createEnvironment: ActorMethod<
-    [EnvironmentCreationInput],
-    EnvironmentCreationResult
-  >;
-  getProfile: ActorMethod<[], UserProfile>;
-  initGateway: ActorMethod<[], string>;
-  registerDevice: ActorMethod<
-    [DeviceRegistrationInput],
-    DeviceRegistrationResult
-  >;
-  registerGateway: ActorMethod<
-    [GatewayRegistrationInput],
-    [] | [GatewayRegistrationResult]
-  >;
-  resetEnvironment: ActorMethod<[], EnvironmentInfo>;
-  setEnvironment: ActorMethod<[string], EnvironmentInfo>;
+  createEnvironment: ActorMethod<[EnvironmentCreationInput], Result>;
+  getGatewayUpdates: ActorMethod<[], [] | [UpdateValue]>;
+  getInitializedGateways: ActorMethod<[string], Result_1>;
+  getProfile: ActorMethod<[string], Result_2>;
+  getRegisteredGateways: ActorMethod<[string], Result_3>;
+  http_request: ActorMethod<[HttpRequest], HttpResponse>;
+  http_request_update: ActorMethod<[HttpRequest], HttpResponse>;
+  initGateway: ActorMethod<[string], Result_4>;
+  registerGateway: ActorMethod<[string, GatewayRegistrationInput], Result_5>;
+  resetEnvironment: ActorMethod<[string], Result_6>;
+  setEnvironment: ActorMethod<[string], Result_6>;
 }

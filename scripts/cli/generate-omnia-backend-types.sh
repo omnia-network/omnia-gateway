@@ -3,7 +3,7 @@
 cd ../src/canisters/omnia_backend
 
 # download the latest version of omnia-backend.did
-curl -s https://raw.githubusercontent.com/massimoalbarello/omnia-ic/master/omnia_main/src/omnia_backend/omnia_backend.did > omnia_backend.did
+curl -s https://raw.githubusercontent.com/massimoalbarello/omnia-ic/crud_ops_on_states/omnia_main/src/omnia_backend/omnia_backend.did > omnia_backend.did
 
 # generate the candid types
 ../../../bin/didc bind omnia_backend.did -t ts > ./omnia_backend.did.d.ts

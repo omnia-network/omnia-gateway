@@ -6,55 +6,84 @@ export const idlFactory = ({ IDL }) => {
     env_uid: IDL.Text,
     env_name: IDL.Text,
   });
-  const UserProfile = IDL.Record({
-    user_principal_id: IDL.Text,
-    environment_uid: IDL.Opt(IDL.Text),
+  const Result = IDL.Variant({
+    Ok: EnvironmentCreationResult,
+    Err: IDL.Text,
   });
-  const DeviceRegistrationInput = IDL.Record({
-    device_name: IDL.Text,
+  const PairingInfo = IDL.Record({ payload: IDL.Text });
+  const UpdateValue = IDL.Record({
+    info: PairingInfo,
+    command: IDL.Text,
+    virtual_persona_principal_id: IDL.Text,
+    virtual_persona_ip: IDL.Text,
+  });
+  const InitializedGatewayValue = IDL.Record({ principal_id: IDL.Text });
+  const Result_1 = IDL.Variant({
+    Ok: IDL.Vec(InitializedGatewayValue),
+    Err: IDL.Text,
+  });
+  const VirtualPersonaValue = IDL.Record({
+    manager_env_uid: IDL.Opt(IDL.Text),
+    user_env_uid: IDL.Opt(IDL.Text),
+    virtual_persona_principal_id: IDL.Text,
+    virtual_persona_ip: IDL.Text,
+  });
+  const Result_2 = IDL.Variant({
+    Ok: VirtualPersonaValue,
+    Err: IDL.Text,
+  });
+  const RegisteredGatewayValue = IDL.Record({
+    gateway_name: IDL.Text,
+    gateway_ip: IDL.Text,
     env_uid: IDL.Text,
-    gateway_uid: IDL.Text,
   });
-  const DeviceRegistrationResult = IDL.Record({
-    device_name: IDL.Text,
-    device_uid: IDL.Text,
+  const Result_3 = IDL.Variant({
+    Ok: IDL.Vec(RegisteredGatewayValue),
+    Err: IDL.Text,
   });
+  const HttpRequest = IDL.Record({
+    url: IDL.Text,
+    method: IDL.Text,
+    body: IDL.Opt(IDL.Vec(IDL.Nat8)),
+    headers: IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
+    upgrade: IDL.Opt(IDL.Bool),
+  });
+  const HttpResponse = IDL.Record({
+    body: IDL.Vec(IDL.Nat8),
+    headers: IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)),
+    upgrade: IDL.Opt(IDL.Bool),
+    streaming_strategy: IDL.Opt(IDL.Text),
+    status_code: IDL.Nat16,
+  });
+  const Result_4 = IDL.Variant({ Ok: IDL.Text, Err: IDL.Text });
   const GatewayRegistrationInput = IDL.Record({
     gateway_name: IDL.Text,
     env_uid: IDL.Text,
-    gateway_uid: IDL.Text,
   });
-  const GatewayRegistrationResult = IDL.Record({
-    gateway_name: IDL.Text,
-    gateway_uid: IDL.Text,
+  const Result_5 = IDL.Variant({
+    Ok: RegisteredGatewayValue,
+    Err: IDL.Text,
   });
-  const EnvironmentInfo = IDL.Record({
-    env_manager_principal_id: IDL.Text,
-    env_uid: IDL.Text,
-    env_name: IDL.Text,
-  });
+  const EnvironmentInfo = IDL.Record({ env_uid: IDL.Text });
+  const Result_6 = IDL.Variant({ Ok: EnvironmentInfo, Err: IDL.Text });
   return IDL.Service({
-    createEnvironment: IDL.Func(
-      [EnvironmentCreationInput],
-      [EnvironmentCreationResult],
-      [],
-    ),
-    getProfile: IDL.Func([], [UserProfile], []),
-    initGateway: IDL.Func([], [IDL.Text], []),
-    registerDevice: IDL.Func(
-      [DeviceRegistrationInput],
-      [DeviceRegistrationResult],
-      [],
-    ),
+    createEnvironment: IDL.Func([EnvironmentCreationInput], [Result], []),
+    getGatewayUpdates: IDL.Func([], [IDL.Opt(UpdateValue)], []),
+    getInitializedGateways: IDL.Func([IDL.Text], [Result_1], []),
+    getProfile: IDL.Func([IDL.Text], [Result_2], []),
+    getRegisteredGateways: IDL.Func([IDL.Text], [Result_3], []),
+    http_request: IDL.Func([HttpRequest], [HttpResponse], ["query"]),
+    http_request_update: IDL.Func([HttpRequest], [HttpResponse], []),
+    initGateway: IDL.Func([IDL.Text], [Result_4], []),
     registerGateway: IDL.Func(
-      [GatewayRegistrationInput],
-      [IDL.Opt(GatewayRegistrationResult)],
+      [IDL.Text, GatewayRegistrationInput],
+      [Result_5],
       [],
     ),
-    resetEnvironment: IDL.Func([], [EnvironmentInfo], []),
-    setEnvironment: IDL.Func([IDL.Text], [EnvironmentInfo], []),
+    resetEnvironment: IDL.Func([IDL.Text], [Result_6], []),
+    setEnvironment: IDL.Func([IDL.Text], [Result_6], []),
   });
 };
 export const init = ({ IDL }) => {
-  return [];
+  return [IDL.Opt(IDL.Text), IDL.Text];
 };
