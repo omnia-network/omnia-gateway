@@ -57,13 +57,9 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_4 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   const Result_5 = IDL.Variant({ 'Ok' : UpdateValue, 'Err' : IDL.Text });
-  const RegisteredDeviceValue = IDL.Record({
-    'name' : IDL.Text,
-    'environment' : IDL.Text,
-    'gateway_principal_id' : IDL.Text,
-  });
+  const RegisteredDeviceIndex = IDL.Record({ 'device_uid' : IDL.Text });
   const Result_6 = IDL.Variant({
-    'Ok' : RegisteredDeviceValue,
+    'Ok' : RegisteredDeviceIndex,
     'Err' : IDL.Text,
   });
   const GatewayRegistrationInput = IDL.Record({

@@ -29,11 +29,7 @@ export interface HttpResponse {
 }
 export interface InitializedGatewayValue { 'principal_id' : string }
 export interface PairingInfo { 'payload' : string }
-export interface RegisteredDeviceValue {
-  'name' : string,
-  'environment' : string,
-  'gateway_principal_id' : string,
-}
+export interface RegisteredDeviceIndex { 'device_uid' : string }
 export interface RegisteredGatewayValue {
   'gateway_name' : string,
   'gateway_ip' : string,
@@ -51,7 +47,7 @@ export type Result_4 = { 'Ok' : string } |
   { 'Err' : string };
 export type Result_5 = { 'Ok' : UpdateValue } |
   { 'Err' : string };
-export type Result_6 = { 'Ok' : RegisteredDeviceValue } |
+export type Result_6 = { 'Ok' : RegisteredDeviceIndex } |
   { 'Err' : string };
 export type Result_7 = { 'Ok' : RegisteredGatewayValue } |
   { 'Err' : string };
