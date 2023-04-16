@@ -14,9 +14,7 @@ export const canisterId = ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID;
  * @return {import("@dfinity/agent").ActorSubclass<import("./omnia_backend.did")._SERVICE>}
  */
 export const createActor = (options = {}) => {
-  const agent =
-    options.agent ||
-    new HttpAgent(options.agentOptions);
+  const agent = options.agent || new HttpAgent(options.agentOptions);
 
   // Fetch root key for certificate validation during development
   if (ENV_VARIABLES.DFX_NETWORK !== "ic") {

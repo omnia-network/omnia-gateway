@@ -4,4 +4,6 @@ export type OmniaGatewayOptions = {
   matterControllerChipToolPath: string;
 
   useProxy?: boolean;
+
+  icIndentitySeedPhrase?: string;
 };

@@ -7,6 +7,7 @@ import { v4 } from "uuid";
 import { createOmniaBackend } from "../canisters/omnia_backend/index.js";
 import { ENV_VARIABLES } from "../constants/environment.js";
 import { IcAgent } from "../ic-agent/agent.js";
+import { IcIdentity } from "../ic-agent/identity.js";
 import { MatterController } from "../matter-controller/controller.js";
 import { ProxyClient } from "../proxy/proxy-client.js";
 import { MatterWotDevice } from "../thngs/matter-wot-device.js";
@@ -25,6 +26,7 @@ const DATA_FOLDER = `${process.cwd()}/data`;
 export class OmniaGateway {
   //// IC Agent
   private _icAgent: IcAgent;
+  private _icIdentity: IcIdentity;
 
   //// WoT
   private _wotServient: Servient;
@@ -62,6 +64,8 @@ export class OmniaGateway {
       options.matterControllerChipWsPort,
       options.matterControllerChipToolPath,
     );
+
+    this._icIdentity = new IcIdentity(options.icIndentitySeedPhrase);
   }
 
   async start(): Promise<void> {
@@ -76,16 +80,24 @@ export class OmniaGateway {
       await this._proxyClient.connect();
     }
 
+    // get the IC identity
+    const icIdentity = this._icIdentity.getIdentity();
+
     // the IC agent must be instantiated after the proxy client, because it can use the proxy fetch
     const omnia_backend = createOmniaBackend({
       agentOptions: {
         host: ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
-        fetch: this._useProxy ? this._proxyClient.proxyFetch.bind(this._proxyClient) : fetch,
+        fetch: this._useProxy
+          ? this._proxyClient.proxyFetch.bind(this._proxyClient)
+          : fetch,
+        identity: icIdentity,
       },
     });
     this._icAgent = new IcAgent(
       omnia_backend,
-      this._useProxy ? this._proxyClient.proxyFetch.bind(this._proxyClient) : fetch,
+      this._useProxy
+        ? this._proxyClient.proxyFetch.bind(this._proxyClient)
+        : fetch,
     );
     await this._icAgent.start();
 

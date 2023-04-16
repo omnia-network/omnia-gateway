@@ -254,8 +254,8 @@ export class ProxyClient {
 
   /**
    * A wrapper around the fetch function that manipulates the request to make it acceptable by the proxy server.
-   * @param args 
-   * @returns 
+   * @param args
+   * @returns
    */
   proxyFetch(...args: Parameters<typeof fetch>): Promise<Response> {
     if (!this._proxyConfig) {
@@ -301,6 +301,6 @@ export class ProxyClient {
       `http://${this._proxyConfig.proxyAddress}`,
     ).toString();
 
-    return fetch(...args)
+    return fetch(...args);
   }
 }
