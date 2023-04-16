@@ -6,11 +6,11 @@ import fetch from "node-fetch";
 import { v4 } from "uuid";
 import { createOmniaBackend } from "../canisters/omnia_backend/index.js";
 import { ENV_VARIABLES } from "../constants/environment.js";
+import { IcAgent } from "../ic-agent/agent.js";
 import { MatterController } from "../matter-controller/controller.js";
 import { ProxyClient } from "../proxy/proxy-client.js";
 import { MatterWotDevice } from "../thngs/matter-wot-device.js";
 import { getMappedCluster } from "../utils/matter-wot-mapping.js";
-import { IcAgent } from "./ic-agent.js";
 import { Database } from "./local-db.js";
 import type {
   CHIPParsedResult,
