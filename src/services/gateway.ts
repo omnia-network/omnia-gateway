@@ -3,7 +3,6 @@ import bindingHttp from "@node-wot/binding-http";
 import { Servient } from "@node-wot/core";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 import fetch from "node-fetch";
-import { v4 } from "uuid";
 import { createOmniaBackend } from "../canisters/omnia_backend/index.js";
 import { ENV_VARIABLES } from "../constants/environment.js";
 import { IcAgent } from "../ic-agent/agent.js";
@@ -135,6 +134,8 @@ export class OmniaGateway {
           throw new Error("Device is not the same");
         }
 
+        // TODO: check if device is still registered in backend
+
         // expose the device if all checks passed
         this.exposeDevice(localDeviceData);
       } catch (err) {
@@ -164,20 +165,21 @@ export class OmniaGateway {
             new NodeId(BigInt(pairingInfo.nodeId)),
           );
 
-        // TODO: register device on backend and get device id
-        // for now, we use a random uuid as device id
-        const deviceId = v4();
-        const device = await this._localDb.storeCommissionedDevice(deviceId, {
-          id: deviceId,
-          matterNodeId: pairingInfo.nodeId,
-          matterInfo: {
-            ...deviceInfo,
-            pairingCode: pairingInfo.payload,
-          },
-          matterClusters: deviceClusters,
-        });
+        // register device on backend and get device id
+        const deviceId = await this._icAgent.registerDevice();
+        if (deviceId) {
+          const device = await this._localDb.storeCommissionedDevice(deviceId, {
+            id: deviceId,
+            matterNodeId: pairingInfo.nodeId,
+            matterInfo: {
+              ...deviceInfo,
+              pairingCode: pairingInfo.payload,
+            },
+            matterClusters: deviceClusters,
+          });
 
-        this.exposeDevice(device);
+          this.exposeDevice(device);
+        }
       }
     }, 5000);
   }

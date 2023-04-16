@@ -37,6 +37,9 @@ export interface InitializedGatewayValue {
 export interface PairingInfo {
   payload: string;
 }
+export interface RegisteredDeviceIndex {
+  device_uid: string;
+}
 export interface RegisteredGatewayValue {
   gateway_name: string;
   gateway_ip: string;
@@ -47,8 +50,10 @@ export type Result_1 = { Ok: Array<InitializedGatewayValue> } | { Err: string };
 export type Result_2 = { Ok: VirtualPersonaValue } | { Err: string };
 export type Result_3 = { Ok: Array<RegisteredGatewayValue> } | { Err: string };
 export type Result_4 = { Ok: string } | { Err: string };
-export type Result_5 = { Ok: RegisteredGatewayValue } | { Err: string };
-export type Result_6 = { Ok: EnvironmentInfo } | { Err: string };
+export type Result_5 = { Ok: UpdateValue } | { Err: string };
+export type Result_6 = { Ok: RegisteredDeviceIndex } | { Err: string };
+export type Result_7 = { Ok: RegisteredGatewayValue } | { Err: string };
+export type Result_8 = { Ok: EnvironmentInfo } | { Err: string };
 export interface UpdateValue {
   info: PairingInfo;
   command: string;
@@ -70,7 +75,9 @@ export interface _SERVICE {
   http_request: ActorMethod<[HttpRequest], HttpResponse>;
   http_request_update: ActorMethod<[HttpRequest], HttpResponse>;
   initGateway: ActorMethod<[string], Result_4>;
-  registerGateway: ActorMethod<[string, GatewayRegistrationInput], Result_5>;
-  resetEnvironment: ActorMethod<[string], Result_6>;
-  setEnvironment: ActorMethod<[string], Result_6>;
+  pairNewDevice: ActorMethod<[string, string, string], Result_5>;
+  registerDevice: ActorMethod<[string], Result_6>;
+  registerGateway: ActorMethod<[string, GatewayRegistrationInput], Result_7>;
+  resetEnvironment: ActorMethod<[string], Result_8>;
+  setEnvironment: ActorMethod<[string], Result_8>;
 }

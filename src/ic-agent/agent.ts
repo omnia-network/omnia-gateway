@@ -45,7 +45,23 @@ export class IcAgent {
     } catch (error) {
       console.error("Error fetching updates:", error);
     }
-    return;
+  }
+
+  async registerDevice(): Promise<string | undefined> {
+    try {
+      const deviceRegistrationResult = await callMethodWithChallenge(
+        (nonce) => {
+          return this._actor.registerDevice(nonce);
+        },
+        "localhost",
+      );
+      if ("Ok" in deviceRegistrationResult) {
+        return deviceRegistrationResult.Ok.device_uid;
+      }
+      throw new Error(deviceRegistrationResult.Err);
+    } catch (error) {
+      console.error("Error registering device:", error);
+    }
   }
 }
 

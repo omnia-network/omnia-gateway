@@ -56,16 +56,22 @@ export const idlFactory = ({ IDL }) => {
     status_code: IDL.Nat16,
   });
   const Result_4 = IDL.Variant({ Ok: IDL.Text, Err: IDL.Text });
+  const Result_5 = IDL.Variant({ Ok: UpdateValue, Err: IDL.Text });
+  const RegisteredDeviceIndex = IDL.Record({ device_uid: IDL.Text });
+  const Result_6 = IDL.Variant({
+    Ok: RegisteredDeviceIndex,
+    Err: IDL.Text,
+  });
   const GatewayRegistrationInput = IDL.Record({
     gateway_name: IDL.Text,
     env_uid: IDL.Text,
   });
-  const Result_5 = IDL.Variant({
+  const Result_7 = IDL.Variant({
     Ok: RegisteredGatewayValue,
     Err: IDL.Text,
   });
   const EnvironmentInfo = IDL.Record({ env_uid: IDL.Text });
-  const Result_6 = IDL.Variant({ Ok: EnvironmentInfo, Err: IDL.Text });
+  const Result_8 = IDL.Variant({ Ok: EnvironmentInfo, Err: IDL.Text });
   return IDL.Service({
     createEnvironment: IDL.Func([EnvironmentCreationInput], [Result], []),
     getGatewayUpdates: IDL.Func([], [IDL.Opt(UpdateValue)], []),
@@ -75,13 +81,15 @@ export const idlFactory = ({ IDL }) => {
     http_request: IDL.Func([HttpRequest], [HttpResponse], ["query"]),
     http_request_update: IDL.Func([HttpRequest], [HttpResponse], []),
     initGateway: IDL.Func([IDL.Text], [Result_4], []),
+    pairNewDevice: IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Result_5], []),
+    registerDevice: IDL.Func([IDL.Text], [Result_6], []),
     registerGateway: IDL.Func(
       [IDL.Text, GatewayRegistrationInput],
-      [Result_5],
+      [Result_7],
       [],
     ),
-    resetEnvironment: IDL.Func([IDL.Text], [Result_6], []),
-    setEnvironment: IDL.Func([IDL.Text], [Result_6], []),
+    resetEnvironment: IDL.Func([IDL.Text], [Result_8], []),
+    setEnvironment: IDL.Func([IDL.Text], [Result_8], []),
   });
 };
 export const init = ({ IDL }) => {
