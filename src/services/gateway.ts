@@ -163,6 +163,7 @@ export class OmniaGateway {
           await this._matterController.getDeviceAvailableClusters(deviceNodeId);
 
         // register device on backend and get device id
+        // TODO: send devices info to backend when re1gistering it
         const deviceId = await this._icAgent.registerDevice();
         if (deviceId) {
           const device = await this._localDb.storeCommissionedDevice(deviceId, {
