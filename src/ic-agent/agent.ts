@@ -53,7 +53,7 @@ export class IcAgent {
         (nonce) => {
           return this._actor.registerDevice(nonce);
         },
-        "localhost",
+        this._fetch,
       );
       if ("Ok" in deviceRegistrationResult) {
         return deviceRegistrationResult.Ok.device_uid;

@@ -29,26 +29,21 @@ export class IcIdentity {
     // check if the identity is saved in the file system
     // if not, create a new one
     // if yes, load it
-    this._identity = this.loadIdentity();
-    if (!this._identity) {
-      this._identity = this.createNewIdentity();
-    }
+    this._identity = this.loadIdentity() || this.createNewIdentity();
 
     return this._identity;
   }
 
   private loadIdentity(): Secp256k1KeyIdentity | undefined {
-    if (existsSync(`${IDENTITY_FOLDER}/private-key`)) {
-      const privateKey = readFileSync(`${IDENTITY_FOLDER}/private-key`);
+    if (existsSync(`${IDENTITY_FOLDER}/identity.json`)) {
+      const keyPair = readFileSync(`${IDENTITY_FOLDER}/identity.json`, "utf-8");
 
-      const identity = Secp256k1KeyIdentity.fromSecretKey(privateKey);
+      const identity = Secp256k1KeyIdentity.fromJSON(keyPair);
 
       // TODO: load seed phrase from private key
 
       this.logger.info("Identity loaded from file system");
-      this.logger.info(
-        `Private key loaded from ${IDENTITY_FOLDER}/private-key`,
-      );
+      this.logger.info(`Key pair loaded from ${IDENTITY_FOLDER}/identity.json`);
       // this.logger.info(`Seed phrase: ${this._seedPhrase}`);
       this.logger.info(`Principal: ${identity.getPrincipal().toText()}`);
 
@@ -73,10 +68,14 @@ export class IcIdentity {
     const identity = Secp256k1KeyIdentity.fromSecretKey(addrnode.privateKey);
 
     // save the private key
-    writeFileSync(`${IDENTITY_FOLDER}/private-key`, addrnode.privateKey);
+    writeFileSync(
+      `${IDENTITY_FOLDER}/identity.json`,
+      JSON.stringify(identity.toJSON()),
+      "utf-8",
+    );
 
     this.logger.info("New identity created");
-    this.logger.info(`Private key saved to ${IDENTITY_FOLDER}/private-key`);
+    this.logger.info(`Key pair saved to ${IDENTITY_FOLDER}/identity.json`);
     this.logger.info(`Seed phrase: ${this._seedPhrase}`);
     this.logger.info(`Principal: ${identity.getPrincipal().toText()}`);
 

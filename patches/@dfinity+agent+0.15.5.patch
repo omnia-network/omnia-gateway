@@ -1,0 +1,44 @@
+diff --git a/node_modules/@dfinity/agent/lib/cjs/agent/http/index.js b/node_modules/@dfinity/agent/lib/cjs/agent/http/index.js
+index cf5b742..212ef2e 100644
+--- a/node_modules/@dfinity/agent/lib/cjs/agent/http/index.js
++++ b/node_modules/@dfinity/agent/lib/cjs/agent/http/index.js
+@@ -222,7 +222,7 @@ class HttpAgent {
+             request: {
+                 body: null,
+                 method: 'POST',
+-                headers: new Headers(Object.assign({ 'Content-Type': 'application/cbor' }, (this._credentials ? { Authorization: 'Basic ' + btoa(this._credentials) } : {}))),
++                headers: Object.assign({ 'Content-Type': 'application/cbor' }, (this._credentials ? { Authorization: 'Basic ' + btoa(this._credentials) } : {})),
+             },
+             endpoint: "call" /* Endpoint.Call */,
+             body: submit,
+@@ -283,7 +283,7 @@ class HttpAgent {
+         let transformedRequest = await this._transform({
+             request: {
+                 method: 'POST',
+-                headers: new Headers(Object.assign({ 'Content-Type': 'application/cbor' }, (this._credentials ? { Authorization: 'Basic ' + btoa(this._credentials) } : {}))),
++                headers: Object.assign({ 'Content-Type': 'application/cbor' }, (this._credentials ? { Authorization: 'Basic ' + btoa(this._credentials) } : {})),
+             },
+             endpoint: "read" /* Endpoint.Query */,
+             body: request,
+@@ -305,7 +305,7 @@ class HttpAgent {
+         const transformedRequest = await this._transform({
+             request: {
+                 method: 'POST',
+-                headers: new Headers(Object.assign({ 'Content-Type': 'application/cbor' }, (this._credentials ? { Authorization: 'Basic ' + btoa(this._credentials) } : {}))),
++                headers: Object.assign({ 'Content-Type': 'application/cbor' }, (this._credentials ? { Authorization: 'Basic ' + btoa(this._credentials) } : {})),
+             },
+             endpoint: "read_state" /* Endpoint.ReadState */,
+             body: {
+diff --git a/node_modules/@dfinity/agent/lib/cjs/agent/http/transforms.js b/node_modules/@dfinity/agent/lib/cjs/agent/http/transforms.js
+index 2832665..24d43cf 100644
+--- a/node_modules/@dfinity/agent/lib/cjs/agent/http/transforms.js
++++ b/node_modules/@dfinity/agent/lib/cjs/agent/http/transforms.js
+@@ -54,7 +54,7 @@ function makeNonceTransform(nonceFn = types_1.makeNonce) {
+     return async (request) => {
+         const nonce = nonceFn();
+         // Nonce needs to be inserted into the header for all requests, to enable logs to be correlated with requests.
+-        const headers = request.request.headers ? new Headers(request.request.headers) : new Headers();
++        const headers = request.request.headers;
+         // TODO: uncomment this when the http proxy supports it.
+         // headers.set('X-IC-Request-ID', toHex(new Uint8Array(nonce)));
+         request.request.headers = headers;

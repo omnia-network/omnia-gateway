@@ -82,22 +82,19 @@ export class OmniaGateway {
     // get the IC identity
     const icIdentity = this._icIdentity.getIdentity();
 
+    const customFetch = this._useProxy
+      ? this._proxyClient.proxyFetch.bind(this._proxyClient)
+      : fetch;
+
     // the IC agent must be instantiated after the proxy client, because it can use the proxy fetch
     const omnia_backend = createOmniaBackend({
       agentOptions: {
         host: ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
-        fetch: this._useProxy
-          ? this._proxyClient.proxyFetch.bind(this._proxyClient)
-          : fetch,
+        fetch: customFetch,
         identity: icIdentity,
       },
     });
-    this._icAgent = new IcAgent(
-      omnia_backend,
-      this._useProxy
-        ? this._proxyClient.proxyFetch.bind(this._proxyClient)
-        : fetch,
-    );
+    this._icAgent = new IcAgent(omnia_backend, customFetch);
     await this._icAgent.start();
 
     // we must ensure that the data folder exists before starting sub services
@@ -154,16 +151,16 @@ export class OmniaGateway {
       if (pairingInfo !== undefined) {
         await this.pairDevice(pairingInfo);
 
+        const deviceNodeId = new NodeId(BigInt(pairingInfo.nodeId));
+
         // get device info from matter controller
         const deviceInfo = await this._matterController.getDeviceInfo(
-          new NodeId(BigInt(pairingInfo.nodeId)),
+          deviceNodeId,
         );
 
         // get device clusters from matter controller
         const deviceClusters =
-          await this._matterController.getDeviceAvailableClusters(
-            new NodeId(BigInt(pairingInfo.nodeId)),
-          );
+          await this._matterController.getDeviceAvailableClusters(deviceNodeId);
 
         // register device on backend and get device id
         const deviceId = await this._icAgent.registerDevice();
