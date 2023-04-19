@@ -111,39 +111,53 @@ export class OmniaGateway {
     );
     this._wotNamespace = await this._wotServient.start();
 
-    for (const deviceId in db.commissionedDevices) {
-      try {
-        const localDeviceData = await this._localDb.getCommissionedDevice(
-          deviceId,
-        );
+    // get registered devices in the backend
+    const registeredDevices: { Ok: Array<string> } | { Err: string } =
+      await this._icAgent.actor.getRegisteredDevices();
 
-        // this should throw an error if the device is not connected or paired anymore
-        const deviceInfo = await this._matterController.getDeviceInfo(
-          new NodeId(BigInt(localDeviceData.matterNodeId)),
-        );
+    if ("Ok" in registeredDevices) {
+      const registeredDevicesIds = registeredDevices.Ok;
+      const db = await this._localDb.start();
+      for (const deviceId in db.commissionedDevices) {
+        try {
+          const localDeviceData = await this._localDb.getCommissionedDevice(
+            deviceId,
+          );
 
-        // just check if we're talking to the same device
-        if (
-          deviceInfo.productId !== localDeviceData.matterInfo.productId ||
-          deviceInfo.vendorId !== localDeviceData.matterInfo.vendorId
-        ) {
-          // should never happen
-          throw new Error("Device is not the same");
+          // this should throw an error if the device is not connected or paired anymore
+          const deviceInfo = await this._matterController.getDeviceInfo(
+            new NodeId(BigInt(localDeviceData.matterNodeId)),
+          );
+
+          // just check if we're talking to the same device
+          if (
+            deviceInfo.productId !== localDeviceData.matterInfo.productId ||
+            deviceInfo.vendorId !== localDeviceData.matterInfo.vendorId
+          ) {
+            // should never happen
+            throw new Error("Device is not the same");
+          }
+
+          // check if device is still registered in backend
+          if (registeredDevicesIds.includes(deviceId)) {
+            // expose the device if all checks passed
+            this.exposeDevice(localDeviceData);
+          } else {
+            await this._localDb.removeCommissionedDevice(deviceId);
+            // TODO: we should also unpair the device from the controller in certain cases
+          }
+        } catch (err) {
+          console.error(err);
+          console.log(
+            `Device ${deviceId} is not connected anymore, removing it from the database`,
+          );
+          await this._localDb.removeCommissionedDevice(deviceId);
+
+          // TODO: we should also unpair the device from the controller in certain cases
         }
-
-        // TODO: check if device is still registered in backend
-
-        // expose the device if all checks passed
-        this.exposeDevice(localDeviceData);
-      } catch (err) {
-        console.error(err);
-        console.log(
-          `Device ${deviceId} is not connected anymore, removing it from the database`,
-        );
-        await this._localDb.removeCommissionedDevice(deviceId);
-
-        // TODO: we should also unpair the device from the controller in certain cases
       }
+    } else if ("Err" in registeredDevices) {
+      console.log(`Couldn't get registered devices: ${registeredDevices.Err}`);
     }
 
     setInterval(async () => {
@@ -164,7 +178,12 @@ export class OmniaGateway {
 
         // register device on backend and get device id
         // TODO: send devices info to backend when re1gistering it
-        const deviceId = await this._icAgent.registerDevice();
+        const affordances: string[] = [];
+        for (const cluster in deviceClusters) {
+          affordances.push(cluster);
+        }
+
+        const deviceId = await this._icAgent.registerDevice(affordances);
         if (deviceId) {
           const device = await this._localDb.storeCommissionedDevice(deviceId, {
             id: deviceId,

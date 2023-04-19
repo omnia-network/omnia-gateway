@@ -6,17 +6,17 @@ import { _SERVICE } from "../canisters/omnia_backend/omnia_backend.did.js";
 import { httpNonceChallenge } from "../utils/nonce-challenge.js";
 
 export class IcAgent {
-  private _actor: ActorSubclass<_SERVICE>;
+  actor: ActorSubclass<_SERVICE>;
   private _fetch: typeof fetch;
 
   constructor(actor: ActorSubclass<_SERVICE>, customFetch: typeof fetch) {
-    this._actor = actor;
+    this.actor = actor;
     this._fetch = customFetch;
   }
 
   async start() {
     const initGatewayRes = await callMethodWithChallenge((nonce) => {
-      return this._actor.initGateway(nonce);
+      return this.actor.initGateway(nonce);
     }, this._fetch);
     console.log("Gateway principal ID: ", initGatewayRes);
   }
@@ -29,7 +29,7 @@ export class IcAgent {
     | undefined
   > {
     try {
-      const updates = await this._actor.getGatewayUpdates();
+      const updates = await this.actor.getGatewayUpdates();
       if (updates.length != 0 && updates[0].command == "pair") {
         const nodeId = Math.floor(Math.random() * 65525) + 1;
         const payload = updates[0].info.payload;
@@ -47,11 +47,11 @@ export class IcAgent {
     }
   }
 
-  async registerDevice(): Promise<string | undefined> {
+  async registerDevice(affordances: string[]): Promise<string | undefined> {
     try {
       const deviceRegistrationResult = await callMethodWithChallenge(
         (nonce) => {
-          return this._actor.registerDevice(nonce);
+          return this.actor.registerDevice(nonce, affordances);
         },
         this._fetch,
       );
