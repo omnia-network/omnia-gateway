@@ -3,6 +3,7 @@ import bindingHttp from "@node-wot/binding-http";
 import { Servient } from "@node-wot/core";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
 import fetch from "node-fetch";
+import * as WoT from "wot-typescript-definitions";
 import { createOmniaBackend } from "../canisters/omnia_backend/index.js";
 import { ENV_VARIABLES } from "../constants/environment.js";
 import { IcAgent } from "../ic-agent/agent.js";
@@ -10,7 +11,7 @@ import { IcIdentity } from "../ic-agent/identity.js";
 import { MatterController } from "../matter-controller/controller.js";
 import { ProxyClient } from "../proxy/proxy-client.js";
 import { MatterWotDevice } from "../thngs/matter-wot-device.js";
-import { getMappedCluster } from "../utils/matter-wot-mapping.js";
+import { generateThingModel } from "../utils/matter-wot-mapping.js";
 import { Database } from "./local-db.js";
 import type {
   CHIPParsedResult,
@@ -114,15 +115,16 @@ export class OmniaGateway {
     this._wotNamespace = await this._wotServient.start();
 
     // get registered devices in the backend
-    const registeredDevices =
-      await this._icAgent.actor.getRegisteredDevices();
+    const registeredDevices = await this._icAgent.actor.getRegisteredDevices();
 
     const registeredDevicesIds: string[] = [];
 
     if ("Ok" in registeredDevices) {
       registeredDevicesIds.push(...registeredDevices.Ok);
     } else if ("Err" in registeredDevices) {
-      console.error(`Couldn't get registered devices: ${registeredDevices.Err}`);
+      console.error(
+        `Couldn't get registered devices: ${registeredDevices.Err}`,
+      );
       // TODO: handle the error better, maybe retry or exit
     }
 
@@ -168,6 +170,7 @@ export class OmniaGateway {
 
     // this should be triggered only if the connection to the backend is working,
     // otherwise we end up polling continuously without any result
+    // TODO: to be moved to the IcAgent, passing a callback function from this instance for when an update is received
     setInterval(async () => {
       const pairingInfo = await this._icAgent.pollForUpdates();
       if (pairingInfo !== undefined) {
@@ -227,35 +230,8 @@ export class OmniaGateway {
     return pairDeviceResult;
   }
 
-  private generateThingModel(device: DbDevice): WoT.ExposedThingInit {
-    const model = {
-      "@context": ["https://www.w3.org/2019/wot/td/v1", { "@language": "en" }],
-      "@type": "",
-      id: `urn:uuid:${device.id}`,
-      title: device.id,
-      description: "",
-      securityDefinitions: {
-        "": {
-          scheme: "nosec",
-        },
-      },
-      security: "",
-      properties: {},
-      actions: {},
-    };
-
-    for (const clusterId in device.matterClusters) {
-      const mappedCluster = getMappedCluster(clusterId);
-
-      Object.assign(model.properties, mappedCluster.properties);
-      Object.assign(model.actions, mappedCluster.actions);
-    }
-
-    return model;
-  }
-
   private async exposeDevice(device: DbDevice): Promise<void> {
-    const model = this.generateThingModel(device);
+    const model = generateThingModel(device.id, device.matterClusters);
 
     const wotDevice = new MatterWotDevice(
       this._wotNamespace,

@@ -1,35 +1,36 @@
-import { DataSchema, DataSchemaType } from "wot-thing-model-types";
+import {
+  DataSchema,
+  DataSchemaType,
+  TypeDeclaration,
+} from "wot-thing-description-types";
+
+// override some keys to specify how the schema must be
 
 export type AttributeDataSchema = DataSchema & {
   /**
    * Must be of type `integer`
    */
-  type?: DataSchemaType;
+  type?: Extract<DataSchemaType, "integer">;
 };
 
 export type CommandDataSchema = DataSchema & {
   /**
    * Must be of type `object`
    */
-  type?: DataSchemaType;
-  title: string;
-  description?: string;
-  properties: {
-    id: {
+  type?: Extract<DataSchemaType, "object">;
+  properties: DataSchema & {
+    id: DataSchema & {
       /**
        * Must be of type `integer`
        */
-      type: DataSchemaType;
+      type: Extract<DataSchemaType, "integer">;
       const: number;
     };
-    payload?: {
+    payload?: DataSchema & {
       /**
        * Must be of type `object`
        */
-      type: DataSchemaType;
-      properties: {
-        [key: string]: DataSchema;
-      };
+      type: Extract<DataSchemaType, "object">;
     };
   };
 };
@@ -37,34 +38,28 @@ export type CommandDataSchema = DataSchema & {
 export type MatterWotMapping = {
   [key: string]: {
     properties: {
-      [key: string]: {
-        title: string;
-        description?: string;
+      [key: string]: DataSchema & {
         uriVariables: {
-          attribute: {
+          attribute: DataSchema & {
             /**
              * Must be of type `integer`
              */
-            type: DataSchemaType;
-            description: string;
+            type: Extract<DataSchemaType, "integer">;
             oneOf: Array<AttributeDataSchema>;
           };
         };
       };
     };
     actions: {
-      [key: string]: {
-        title: string;
-        description?: string;
+      [key: string]: DataSchema & {
         input: {
           type: DataSchemaType;
           properties: {
-            command: {
+            command: DataSchema & {
               /**
                * Must be of type `object`
                */
-              type: DataSchemaType;
-              description: string;
+              type: Extract<DataSchemaType, "object">;
               oneOf: Array<CommandDataSchema>;
             };
           };
@@ -88,5 +83,21 @@ export type WotActionHandlerCommand = {
   command: {
     id: number;
     payload?: Record<string, unknown>;
+  };
+};
+
+export type MatterOntologiesMapping = {
+  [clusterId: string]: {
+    "@type": TypeDeclaration;
+    attributes: {
+      [attributeId: number]: {
+        "@type": TypeDeclaration;
+      };
+    };
+    commands: {
+      [commandId: number]: {
+        "@type": TypeDeclaration;
+      };
+    };
   };
 };

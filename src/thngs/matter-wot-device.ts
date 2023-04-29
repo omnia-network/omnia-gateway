@@ -18,9 +18,9 @@ import type {
 export class MatterWotDevice {
   thing: WoT.ExposedThing;
   deviceWoT: typeof WoT;
-  td: WoT.ExposedThingInit;
+  td: WoT.ThingDescription;
 
-  thingModel: WoT.ExposedThingInit;
+  thingModel: WoT.ThingDescription;
   private nodeId: NodeId;
   private tdDirectory: string;
   private matterController: MatterController;
@@ -28,7 +28,7 @@ export class MatterWotDevice {
 
   constructor(
     deviceWoT: typeof WoT,
-    thingModel: WoT.ExposedThingInit,
+    thingModel: WoT.ThingDescription,
     matterController: MatterController,
     localDevice: DbDevice,
     tdDirectory?: string,

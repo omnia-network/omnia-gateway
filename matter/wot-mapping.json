@@ -8,6 +8,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -34,6 +35,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -93,6 +95,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -114,6 +117,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -340,6 +344,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -386,6 +391,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -928,15 +934,18 @@
       "6": {
         "title": "On/Off",
         "description": "Attributes and commands for switching devices between 'On' and 'Off' states.",
+        "@type": "saref:Light",
         "uriVariables": {
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
                 "title": "ON_OFF",
-                "const": 0
+                "const": 0,
+                "@type": "saref:OnOffState"
               },
               {
                 "type": "integer",
@@ -968,16 +977,19 @@
       "6": {
         "title": "On/Off",
         "description": "Attributes and commands for switching devices between 'On' and 'Off' states.",
+        "@type": "saref:Light",
         "input": {
           "type": "object",
           "properties": {
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
                   "description": "On receipt of this command, a device SHALL enter its ‘Off’ state. This state is device dependent, but it is recommended that it is used for power off or similar functions. On receipt of the Off command, the OnTime attribute SHALL be set to 0.",
+                  "@type": "saref:OffCommand",
                   "properties": {
                     "id": {
                       "type": "integer",
@@ -988,6 +1000,7 @@
                 {
                   "type": "object",
                   "description": "On receipt of this command, a device SHALL enter its ‘On’ state. This state is device dependent, but it is recommended that it is used for power on or similar functions. On receipt of the On command, if the value of the OnTime attribute is equal to 0, the device SHALL set the OffWaitTime attribute to 0.",
+                  "@type": "saref:OnCommand",
                   "properties": {
                     "id": {
                       "type": "integer",
@@ -998,6 +1011,7 @@
                 {
                   "type": "object",
                   "description": "On receipt of this command, if a device is in its ‘Off’ state it SHALL enter its ‘On’ state. Otherwise, if it is in its ‘On’ state it SHALL enter its ‘Off’ state. On receipt of the Toggle command, if the value of the OnOff attribute is equal to FALSE and if the value of the OnTime attribute is equal to 0, the device SHALL set the OffWaitTime attribute to 0. If the value of the OnOff attribute is equal to TRUE, the OnTime attribute SHALL be set to 0.",
+                  "@type": "saref:ToggleCommand",
                   "properties": {
                     "id": {
                       "type": "integer",
@@ -1077,15 +1091,18 @@
       "8": {
         "title": "Level Control",
         "description": "Attributes and commands for controlling devices that can be set to a level between fully 'On' and fully 'Off.'",
+        "@type": "saref:Actuator",
         "uriVariables": {
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
                 "title": "CURRENT_LEVEL",
-                "const": 0
+                "const": 0,
+                "@type": "saref:MultiLevelState"
               },
               {
                 "type": "integer",
@@ -1162,16 +1179,19 @@
       "8": {
         "title": "Level Control",
         "description": "Attributes and commands for controlling devices that can be set to a level between fully 'On' and fully 'Off.'",
+        "@type": "saref:Actuator",
         "input": {
           "type": "object",
           "properties": {
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
                   "description": "\n        Command description for MoveToLevel\n      ",
+                  "@type": "saref:SetLevelCommand",
                   "properties": {
                     "id": {
                       "type": "integer",
@@ -1444,6 +1464,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -1459,6 +1480,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -1475,6 +1497,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -1511,6 +1534,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -1527,6 +1551,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -1548,6 +1573,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -1564,6 +1590,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -1610,6 +1637,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -1626,6 +1654,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -1657,6 +1686,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -1970,6 +2000,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -2089,6 +2120,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -2105,6 +2137,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -2131,6 +2164,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -2147,6 +2181,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -2178,6 +2213,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -2194,6 +2230,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -2215,6 +2252,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -2231,6 +2269,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -2252,6 +2291,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -2268,6 +2308,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -2439,6 +2480,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -2455,6 +2497,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -2497,6 +2540,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -2643,6 +2687,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -2705,6 +2750,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -2953,6 +2999,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -2968,6 +3015,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -3043,6 +3091,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -3104,6 +3153,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -3144,6 +3194,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -3180,6 +3231,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -3207,6 +3259,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -3538,6 +3591,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -3565,6 +3619,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -3646,6 +3701,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -3673,6 +3729,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -3734,6 +3791,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -3761,6 +3819,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -3831,6 +3890,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -3875,6 +3935,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -3966,6 +4027,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -3982,6 +4044,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -4013,6 +4076,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -4029,6 +4093,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -4060,6 +4125,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -4141,6 +4207,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -4188,6 +4255,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -4473,6 +4541,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -4510,6 +4579,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -4641,6 +4711,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -4662,6 +4733,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -4678,6 +4750,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -4700,6 +4773,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -4716,6 +4790,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -4731,6 +4806,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -4747,6 +4823,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -4762,6 +4839,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -4778,6 +4856,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -4793,6 +4872,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -4809,6 +4889,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -4830,6 +4911,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -4846,6 +4928,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -4892,6 +4975,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -4928,6 +5012,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -5142,6 +5227,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -5847,6 +5933,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -5974,6 +6061,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -6097,6 +6185,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -6232,6 +6321,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -6248,6 +6338,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -6532,6 +6623,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -6667,6 +6759,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -6738,6 +6831,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -6754,6 +6848,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -6787,6 +6882,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -6803,6 +6899,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7041,6 +7138,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -7423,6 +7521,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7509,6 +7608,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -7525,6 +7625,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7566,6 +7667,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -7582,6 +7684,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7618,6 +7721,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -7634,6 +7738,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7695,6 +7800,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -7711,6 +7817,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7747,6 +7854,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -7763,6 +7871,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7799,6 +7908,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -7815,6 +7925,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7900,6 +8011,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -7916,6 +8028,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7937,6 +8050,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -7953,6 +8067,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -7984,6 +8099,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8085,6 +8201,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -8111,6 +8228,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8174,6 +8292,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -8225,6 +8344,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8402,6 +8522,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -8428,6 +8549,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8507,6 +8629,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -8522,6 +8645,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8549,6 +8673,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -8564,6 +8689,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8619,6 +8745,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -8645,6 +8772,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8739,6 +8867,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -8765,6 +8894,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8824,6 +8954,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -8850,6 +8981,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -8951,6 +9083,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -9007,6 +9140,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": []
             }
           }
@@ -9023,6 +9157,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -9038,6 +9173,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -9126,6 +9262,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -9162,6 +9299,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -9235,6 +9373,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": [
               {
                 "type": "integer",
@@ -9661,6 +9800,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
@@ -10503,6 +10643,7 @@
           "attribute": {
             "type": "integer",
             "description": "Attrbute to read from the device",
+            "@type": "saref:State",
             "oneOf": []
           }
         }
@@ -10518,6 +10659,7 @@
             "command": {
               "type": "object",
               "description": "Command to send to the device",
+              "@type": "saref:Command",
               "oneOf": [
                 {
                   "type": "object",
