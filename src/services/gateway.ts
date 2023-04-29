@@ -11,7 +11,10 @@ import { IcIdentity } from "../ic-agent/identity.js";
 import { MatterController } from "../matter-controller/controller.js";
 import { ProxyClient } from "../proxy/proxy-client.js";
 import { MatterWotDevice } from "../thngs/matter-wot-device.js";
-import { generateThingModel } from "../utils/matter-wot-mapping.js";
+import {
+  generateThingModel,
+  getMatterClusterOntologies,
+} from "../utils/matter-wot-mapping.js";
 import { Database } from "./local-db.js";
 import type {
   CHIPParsedResult,
@@ -188,13 +191,19 @@ export class OmniaGateway {
           await this._matterController.getDeviceAvailableClusters(deviceNodeId);
 
         // register device on backend and get device id
-        // TODO: send devices info to backend when re1gistering it
-        const affordances: string[] = [];
+        // we use a set to avoid duplicates
+        const affordances = new Set<string>();
         for (const cluster in deviceClusters) {
-          affordances.push(cluster);
+          getMatterClusterOntologies(cluster).forEach((ontology) =>
+            affordances.add(ontology),
+          );
         }
 
-        const deviceId = await this._icAgent.registerDevice(affordances);
+        console.log("Registering device with affordances:", affordances);
+
+        const deviceId = await this._icAgent.registerDevice(
+          Array.from(affordances),
+        );
         if (deviceId) {
           const device = await this._localDb.storeCommissionedDevice(deviceId, {
             id: deviceId,

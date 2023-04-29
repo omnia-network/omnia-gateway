@@ -6,7 +6,9 @@ const mapping: MatterWotMapping = JSON.parse(
   readFileSync("./matter/wot-mapping.json", "utf8"),
 );
 
-const getMappedCluster = (clusterId: string): MatterWotMapping[string] => {
+export const getMappedCluster = (
+  clusterId: string,
+): MatterWotMapping[string] => {
   return mapping[clusterId];
 };
 
@@ -47,4 +49,38 @@ export const generateThingModel = (
   }
 
   return model;
+};
+
+/**
+ * Get the ontologies implemented in this Matter cluster. E.g. cluster `6` (On/Off) implements `saref:Light`.
+ * @param clusterId the Matter cluster ID
+ * @returns {string[]} the array of ontologies implemented in this Matter cluster
+ */
+export const getMatterClusterOntologies = (clusterId: string): string[] => {
+  const cluster = getMappedCluster(clusterId);
+  const ontologiesTypes = new Set<string>();
+
+  for (const propertyId in cluster.properties) {
+    const property = cluster.properties[propertyId];
+    if (property["@type"]) {
+      if (typeof property["@type"] === "string") {
+        ontologiesTypes.add(property["@type"]);
+      } else {
+        property["@type"].forEach((type) => ontologiesTypes.add(type));
+      }
+    }
+  }
+
+  for (const actionId in cluster.actions) {
+    const action = cluster.actions[actionId];
+    if (action["@type"]) {
+      if (typeof action["@type"] === "string") {
+        ontologiesTypes.add(action["@type"]);
+      } else {
+        action["@type"].forEach((type) => ontologiesTypes.add(type));
+      }
+    }
+  }
+
+  return Array.from(ontologiesTypes);
 };

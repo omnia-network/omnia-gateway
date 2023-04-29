@@ -35,8 +35,14 @@ export type CommandDataSchema = DataSchema & {
   };
 };
 
+/**
+ * The `key` index is the Matter cluster ID
+ */
 export type MatterWotMapping = {
   [key: string]: {
+    /**
+     * The `key` index is the Matter cluster ID
+     */
     properties: {
       [key: string]: DataSchema & {
         uriVariables: {
@@ -50,6 +56,9 @@ export type MatterWotMapping = {
         };
       };
     };
+    /**
+     * The `key` index is the Matter cluster ID
+     */
     actions: {
       [key: string]: DataSchema & {
         input: {
