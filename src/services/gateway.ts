@@ -42,6 +42,8 @@ export class OmniaGateway {
   private _useProxy = false;
   private _proxyClient: ProxyClient;
 
+  // TODO: add a logger instance for the OmniaGateway
+
   constructor(options: OmniaGatewayOptions) {
     // must come before other services are initialized
     this._localDb = new Database();
@@ -72,6 +74,10 @@ export class OmniaGateway {
       throw new Error("WOT_SERVIENT_PORT not set");
     }
 
+    // we must ensure that the data folder exists before starting sub services
+    // because they need it to store their data
+    this.initializeDataFolder();
+
     // must come before other services start
     const db = await this._localDb.start();
 
@@ -97,10 +103,6 @@ export class OmniaGateway {
     this._icAgent = new IcAgent(omnia_backend, customFetch);
     await this._icAgent.start();
 
-    // we must ensure that the data folder exists before starting sub services
-    // because they need it to store their data
-    this.initializeDataFolder();
-
     await this._matterController.start();
 
     this._wotServient.addServer(
@@ -112,54 +114,60 @@ export class OmniaGateway {
     this._wotNamespace = await this._wotServient.start();
 
     // get registered devices in the backend
-    const registeredDevices: { Ok: Array<string> } | { Err: string } =
+    const registeredDevices =
       await this._icAgent.actor.getRegisteredDevices();
 
+    const registeredDevicesIds: string[] = [];
+
     if ("Ok" in registeredDevices) {
-      const registeredDevicesIds = registeredDevices.Ok;
-      const db = await this._localDb.start();
-      for (const deviceId in db.commissionedDevices) {
-        try {
-          const localDeviceData = await this._localDb.getCommissionedDevice(
-            deviceId,
-          );
-
-          // this should throw an error if the device is not connected or paired anymore
-          const deviceInfo = await this._matterController.getDeviceInfo(
-            new NodeId(BigInt(localDeviceData.matterNodeId)),
-          );
-
-          // just check if we're talking to the same device
-          if (
-            deviceInfo.productId !== localDeviceData.matterInfo.productId ||
-            deviceInfo.vendorId !== localDeviceData.matterInfo.vendorId
-          ) {
-            // should never happen
-            throw new Error("Device is not the same");
-          }
-
-          // check if device is still registered in backend
-          if (registeredDevicesIds.includes(deviceId)) {
-            // expose the device if all checks passed
-            this.exposeDevice(localDeviceData);
-          } else {
-            await this._localDb.removeCommissionedDevice(deviceId);
-            // TODO: we should also unpair the device from the controller in certain cases
-          }
-        } catch (err) {
-          console.error(err);
-          console.log(
-            `Device ${deviceId} is not connected anymore, removing it from the database`,
-          );
-          await this._localDb.removeCommissionedDevice(deviceId);
-
-          // TODO: we should also unpair the device from the controller in certain cases
-        }
-      }
+      registeredDevicesIds.push(...registeredDevices.Ok);
     } else if ("Err" in registeredDevices) {
-      console.log(`Couldn't get registered devices: ${registeredDevices.Err}`);
+      console.error(`Couldn't get registered devices: ${registeredDevices.Err}`);
+      // TODO: handle the error better, maybe retry or exit
     }
 
+    for (const deviceId in db.commissionedDevices) {
+      try {
+        const localDeviceData = await this._localDb.getCommissionedDevice(
+          deviceId,
+        );
+
+        // this should throw an error if the device is not connected or paired anymore
+        const deviceInfo = await this._matterController.getDeviceInfo(
+          new NodeId(BigInt(localDeviceData.matterNodeId)),
+        );
+
+        // just check if we're talking to the same device
+        if (
+          deviceInfo.productId !== localDeviceData.matterInfo.productId ||
+          deviceInfo.vendorId !== localDeviceData.matterInfo.vendorId
+        ) {
+          // should never happen
+          throw new Error("Device is not the same");
+        }
+
+        // check if device is still registered in backend
+        if (registeredDevicesIds.includes(deviceId)) {
+          // expose the device if all checks passed
+          this.exposeDevice(localDeviceData);
+        } else {
+          await this._localDb.removeCommissionedDevice(deviceId);
+          // TODO: we should also unpair the device from the controller in certain cases
+        }
+      } catch (err) {
+        console.error(err);
+        console.log(
+          `Device ${deviceId} is not connected anymore, removing it from the database`,
+        );
+        await this._localDb.removeCommissionedDevice(deviceId);
+
+        // TODO: we should also unpair the device from the controller in certain cases
+        // TODO: unregister device from backend, since we can't talk to it anymore
+      }
+    }
+
+    // this should be triggered only if the connection to the backend is working,
+    // otherwise we end up polling continuously without any result
     setInterval(async () => {
       const pairingInfo = await this._icAgent.pollForUpdates();
       if (pairingInfo !== undefined) {

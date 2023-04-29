@@ -9,6 +9,8 @@ export class IcAgent {
   actor: ActorSubclass<_SERVICE>;
   private _fetch: typeof fetch;
 
+  // TODO: add a logger instance for the IcAgent
+
   constructor(actor: ActorSubclass<_SERVICE>, customFetch: typeof fetch) {
     this.actor = actor;
     this._fetch = customFetch;
@@ -29,6 +31,8 @@ export class IcAgent {
     | undefined
   > {
     try {
+      // TODO: the gateway should send requests to a canister query endpoint and get the update id
+      // only if there are updates, then fetch the updates from the canister update endpoint
       const updates = await this.actor.getGatewayUpdates();
       if (updates.length != 0 && updates[0].command == "pair") {
         const nodeId = Math.floor(Math.random() * 65525) + 1;
