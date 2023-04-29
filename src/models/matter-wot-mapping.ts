@@ -97,7 +97,6 @@ export type WotActionHandlerCommand = {
 
 export type MatterOntologiesMapping = {
   [clusterId: string]: {
-    "@type": TypeDeclaration;
     attributes: {
       [attributeId: number]: {
         "@type": TypeDeclaration;

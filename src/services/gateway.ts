@@ -12,8 +12,8 @@ import { MatterController } from "../matter-controller/controller.js";
 import { ProxyClient } from "../proxy/proxy-client.js";
 import { MatterWotDevice } from "../thngs/matter-wot-device.js";
 import {
-  generateThingModel,
-  getMatterClusterOntologies,
+  generateThingDescription,
+  getMatterClustersAffordances,
 } from "../utils/matter-wot-mapping.js";
 import { Database } from "./local-db.js";
 import type {
@@ -192,9 +192,9 @@ export class OmniaGateway {
 
         // register device on backend and get device id
         // we use a set to avoid duplicates
-        const affordances = new Set<string>();
+        const affordances = new Set<[string, string]>();
         for (const cluster in deviceClusters) {
-          getMatterClusterOntologies(cluster).forEach((ontology) =>
+          getMatterClustersAffordances(cluster).forEach((ontology) =>
             affordances.add(ontology),
           );
         }
@@ -240,11 +240,11 @@ export class OmniaGateway {
   }
 
   private async exposeDevice(device: DbDevice): Promise<void> {
-    const model = generateThingModel(device.id, device.matterClusters);
+    const td = generateThingDescription(device.id, device.matterClusters);
 
     const wotDevice = new MatterWotDevice(
       this._wotNamespace,
-      model,
+      td,
       this._matterController,
       device,
       TD_DIRECTORY_URI,

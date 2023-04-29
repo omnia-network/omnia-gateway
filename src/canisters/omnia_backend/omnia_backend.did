@@ -1,7 +1,3 @@
-type DevicesAccessInfo = record {
-  devices_urls : vec text;
-  required_headers : vec record { text; text };
-};
 type EnvironmentCreationInput = record { env_name : text };
 type EnvironmentCreationResult = record { env_uid : text; env_name : text };
 type EnvironmentInfo = record { env_uid : text };
@@ -20,9 +16,17 @@ type HttpResponse = record {
   streaming_strategy : opt text;
   status_code : nat16;
 };
-type InitializedGatewayValue = record { principal_id : text };
+type InitializedGatewayValue = record {
+  principal_id : text;
+  proxied_gateway_uid : opt text;
+};
 type PairingInfo = record { payload : text };
 type RegisteredDeviceIndex = record { device_uid : text };
+type RegisteredDeviceValue = record {
+  env_uid : text;
+  device_url : text;
+  gateway_principal_id : text;
+};
 type RegisteredGatewayValue = record {
   gateway_name : text;
   gateway_ip : text;
@@ -32,16 +36,18 @@ type RegisteredGatewayValue = record {
   proxied_gateway_uid : opt text;
 };
 type Result = variant { Ok : EnvironmentCreationResult; Err : text };
-type Result_1 = variant { Ok : DevicesAccessInfo; Err : text };
-type Result_10 = variant { Ok : EnvironmentInfo; Err : text };
-type Result_2 = variant { Ok : vec InitializedGatewayValue; Err : text };
-type Result_3 = variant { Ok : VirtualPersonaValue; Err : text };
-type Result_4 = variant { Ok : vec text; Err : text };
-type Result_5 = variant { Ok : vec RegisteredGatewayValue; Err : text };
-type Result_6 = variant { Ok : text; Err : text };
-type Result_7 = variant { Ok : UpdateValue; Err : text };
-type Result_8 = variant { Ok : RegisteredDeviceIndex; Err : text };
-type Result_9 = variant { Ok : RegisteredGatewayValue; Err : text };
+type Result_1 = variant { Ok : vec InitializedGatewayValue; Err : text };
+type Result_2 = variant { Ok : VirtualPersonaValue; Err : text };
+type Result_3 = variant { Ok : vec text; Err : text };
+type Result_4 = variant { Ok : vec RegisteredGatewayValue; Err : text };
+type Result_5 = variant { Ok : text; Err : text };
+type Result_6 = variant { Ok : UpdateValue; Err : text };
+type Result_7 = variant {
+  Ok : record { RegisteredDeviceIndex; RegisteredDeviceValue };
+  Err : text;
+};
+type Result_8 = variant { Ok : RegisteredGatewayValue; Err : text };
+type Result_9 = variant { Ok : EnvironmentInfo; Err : text };
 type UpdateValue = record {
   info : PairingInfo;
   command : text;
@@ -54,20 +60,19 @@ type VirtualPersonaValue = record {
   virtual_persona_principal_id : text;
   virtual_persona_ip : text;
 };
-service : (opt text, text) -> {
+service : (opt text, text, text, text) -> {
   createEnvironment : (EnvironmentCreationInput) -> (Result);
-  getDevicesInEnvironmentByAffordance : (text, text) -> (Result_1);
   getGatewayUpdates : () -> (opt UpdateValue);
-  getInitializedGateways : (text) -> (Result_2);
-  getProfile : (text) -> (Result_3);
-  getRegisteredDevices : () -> (Result_4);
-  getRegisteredGateways : (text) -> (Result_5);
+  getInitializedGateways : (text) -> (Result_1);
+  getProfile : (text) -> (Result_2);
+  getRegisteredDevices : () -> (Result_3);
+  getRegisteredGateways : (text) -> (Result_4);
   http_request : (HttpRequest) -> (HttpResponse) query;
   http_request_update : (HttpRequest) -> (HttpResponse);
-  initGateway : (text) -> (Result_6);
-  pairNewDevice : (text, text, text) -> (Result_7);
-  registerDevice : (text, vec text) -> (Result_8);
-  registerGateway : (text, GatewayRegistrationInput) -> (Result_9);
-  resetEnvironment : (text) -> (Result_10);
-  setEnvironment : (text) -> (Result_10);
+  initGateway : (text) -> (Result_5);
+  pairNewDevice : (text, text, text) -> (Result_6);
+  registerDevice : (text, vec record { text; text }) -> (Result_7);
+  registerGateway : (text, GatewayRegistrationInput) -> (Result_8);
+  resetEnvironment : (text) -> (Result_9);
+  setEnvironment : (text) -> (Result_9);
 }

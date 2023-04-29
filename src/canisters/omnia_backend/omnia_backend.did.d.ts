@@ -3,10 +3,6 @@
 import type { Principal } from "@dfinity/principal";
 import type { ActorMethod } from "@dfinity/agent";
 
-export interface DevicesAccessInfo {
-  devices_urls: Array<string>;
-  required_headers: Array<[string, string]>;
-}
 export interface EnvironmentCreationInput {
   env_name: string;
 }
@@ -37,12 +33,18 @@ export interface HttpResponse {
 }
 export interface InitializedGatewayValue {
   principal_id: string;
+  proxied_gateway_uid: [] | [string];
 }
 export interface PairingInfo {
   payload: string;
 }
 export interface RegisteredDeviceIndex {
   device_uid: string;
+}
+export interface RegisteredDeviceValue {
+  env_uid: string;
+  device_url: string;
+  gateway_principal_id: string;
 }
 export interface RegisteredGatewayValue {
   gateway_name: string;
@@ -53,16 +55,19 @@ export interface RegisteredGatewayValue {
   proxied_gateway_uid: [] | [string];
 }
 export type Result = { Ok: EnvironmentCreationResult } | { Err: string };
-export type Result_1 = { Ok: DevicesAccessInfo } | { Err: string };
-export type Result_10 = { Ok: EnvironmentInfo } | { Err: string };
-export type Result_2 = { Ok: Array<InitializedGatewayValue> } | { Err: string };
-export type Result_3 = { Ok: VirtualPersonaValue } | { Err: string };
-export type Result_4 = { Ok: Array<string> } | { Err: string };
-export type Result_5 = { Ok: Array<RegisteredGatewayValue> } | { Err: string };
-export type Result_6 = { Ok: string } | { Err: string };
-export type Result_7 = { Ok: UpdateValue } | { Err: string };
-export type Result_8 = { Ok: RegisteredDeviceIndex } | { Err: string };
-export type Result_9 = { Ok: RegisteredGatewayValue } | { Err: string };
+export type Result_1 = { Ok: Array<InitializedGatewayValue> } | { Err: string };
+export type Result_2 = { Ok: VirtualPersonaValue } | { Err: string };
+export type Result_3 = { Ok: Array<string> } | { Err: string };
+export type Result_4 = { Ok: Array<RegisteredGatewayValue> } | { Err: string };
+export type Result_5 = { Ok: string } | { Err: string };
+export type Result_6 = { Ok: UpdateValue } | { Err: string };
+export type Result_7 =
+  | {
+      Ok: [RegisteredDeviceIndex, RegisteredDeviceValue];
+    }
+  | { Err: string };
+export type Result_8 = { Ok: RegisteredGatewayValue } | { Err: string };
+export type Result_9 = { Ok: EnvironmentInfo } | { Err: string };
 export interface UpdateValue {
   info: PairingInfo;
   command: string;
@@ -77,18 +82,17 @@ export interface VirtualPersonaValue {
 }
 export interface _SERVICE {
   createEnvironment: ActorMethod<[EnvironmentCreationInput], Result>;
-  getDevicesInEnvironmentByAffordance: ActorMethod<[string, string], Result_1>;
   getGatewayUpdates: ActorMethod<[], [] | [UpdateValue]>;
-  getInitializedGateways: ActorMethod<[string], Result_2>;
-  getProfile: ActorMethod<[string], Result_3>;
-  getRegisteredDevices: ActorMethod<[], Result_4>;
-  getRegisteredGateways: ActorMethod<[string], Result_5>;
+  getInitializedGateways: ActorMethod<[string], Result_1>;
+  getProfile: ActorMethod<[string], Result_2>;
+  getRegisteredDevices: ActorMethod<[], Result_3>;
+  getRegisteredGateways: ActorMethod<[string], Result_4>;
   http_request: ActorMethod<[HttpRequest], HttpResponse>;
   http_request_update: ActorMethod<[HttpRequest], HttpResponse>;
-  initGateway: ActorMethod<[string], Result_6>;
-  pairNewDevice: ActorMethod<[string, string, string], Result_7>;
-  registerDevice: ActorMethod<[string, Array<string>], Result_8>;
-  registerGateway: ActorMethod<[string, GatewayRegistrationInput], Result_9>;
-  resetEnvironment: ActorMethod<[string], Result_10>;
-  setEnvironment: ActorMethod<[string], Result_10>;
+  initGateway: ActorMethod<[string], Result_5>;
+  pairNewDevice: ActorMethod<[string, string, string], Result_6>;
+  registerDevice: ActorMethod<[string, Array<[string, string]>], Result_7>;
+  registerGateway: ActorMethod<[string, GatewayRegistrationInput], Result_8>;
+  resetEnvironment: ActorMethod<[string], Result_9>;
+  setEnvironment: ActorMethod<[string], Result_9>;
 }

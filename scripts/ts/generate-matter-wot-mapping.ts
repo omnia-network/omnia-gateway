@@ -22,7 +22,6 @@ import type {
  */
 const matterOntologiesMapping: MatterOntologiesMapping = {
   "6": {
-    "@type": "saref:Light",
     attributes: {
       0: {
         "@type": "saref:OnOffState",
@@ -41,7 +40,6 @@ const matterOntologiesMapping: MatterOntologiesMapping = {
     },
   },
   "8": {
-    "@type": "saref:Actuator",
     attributes: {
       0: {
         "@type": "saref:MultiLevelState",
@@ -159,19 +157,15 @@ export const main = () => {
   for (const clusterId in clusters) {
     const cluster = clusters[clusterId as MatterClusterId];
 
-    const ontologies = matterOntologiesMapping[clusterId] || {};
-
     mapping[clusterId] = {
       properties: {
         [clusterId]: {
           title: cluster.name._text,
           description: cluster.description?._text,
-          "@type": ontologies["@type"],
           uriVariables: {
             attribute: {
               type: "integer",
               description: "Attrbute to read from the device",
-              "@type": "saref:State",
               oneOf: [],
             },
           },
@@ -181,14 +175,12 @@ export const main = () => {
         [clusterId]: {
           title: cluster.name._text,
           description: cluster.description?._text,
-          "@type": ontologies["@type"],
           input: {
             type: "object",
             properties: {
               command: {
                 type: "object",
                 description: "Command to send to the device",
-                "@type": "saref:Command",
                 oneOf: [],
               },
             },

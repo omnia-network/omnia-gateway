@@ -20,7 +20,6 @@ export class MatterWotDevice {
   deviceWoT: typeof WoT;
   td: WoT.ThingDescription;
 
-  thingModel: WoT.ThingDescription;
   private nodeId: NodeId;
   private tdDirectory: string;
   private matterController: MatterController;
@@ -28,13 +27,13 @@ export class MatterWotDevice {
 
   constructor(
     deviceWoT: typeof WoT,
-    thingModel: WoT.ThingDescription,
+    thingDescription: WoT.ThingDescription,
     matterController: MatterController,
     localDevice: DbDevice,
     tdDirectory?: string,
   ) {
     this.deviceWoT = deviceWoT;
-    this.thingModel = thingModel;
+    this.td = thingDescription;
     this.matterController = matterController;
     this.localDevice = localDevice;
     this.nodeId = new NodeId(BigInt(localDevice.matterNodeId));
@@ -42,13 +41,13 @@ export class MatterWotDevice {
   }
 
   public async startDevice() {
-    this.thing = await this.deviceWoT.produce(this.thingModel);
+    this.thing = await this.deviceWoT.produce(this.td);
     this.td = this.thing.getThingDescription();
     this.initializeProperties();
     this.initializeActions();
 
     await this.thing.expose();
-    console.log("Exposed Thing:", this.thingModel.title);
+    console.log("Exposed Thing:", this.td.title);
 
     if (this.tdDirectory) {
       this.register(this.tdDirectory);

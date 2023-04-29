@@ -51,7 +51,9 @@ export class IcAgent {
     }
   }
 
-  async registerDevice(affordances: string[]): Promise<string | undefined> {
+  async registerDevice(
+    affordances: [string, string][],
+  ): Promise<string | undefined> {
     try {
       const deviceRegistrationResult = await callMethodWithChallenge(
         (nonce) => {
@@ -60,7 +62,7 @@ export class IcAgent {
         this._fetch,
       );
       if ("Ok" in deviceRegistrationResult) {
-        return deviceRegistrationResult.Ok.device_uid;
+        return deviceRegistrationResult.Ok[0].device_uid;
       }
       throw new Error(deviceRegistrationResult.Err);
     } catch (error) {

@@ -15,7 +15,7 @@ export const getMappedCluster = (
 /**
  * Generate a Thing Model for a Matter device
  */
-export const generateThingModel = (
+export const generateThingDescription = (
   deviceId: string,
   matterClusters: DbMatterClusters,
 ): WoT.ThingDescription => {
@@ -52,32 +52,49 @@ export const generateThingModel = (
 };
 
 /**
- * Get the ontologies implemented in this Matter cluster. E.g. cluster `6` (On/Off) implements `saref:Light`.
+ * Get (predicate, object) tuples for a Matter cluster. E.g.: a device with Matter cluster `6` can have this tuples:
+ * ```
+ * (td:hasPropertyAffordance, saref:OnOffState)
+ * (td:hasActionAffordance, saref:OffCommand)
+ * (td:hasActionAffordance, saref:OnCommand)
+ * ...
+ * ```
+ * For predicates, we use the Thing Description Ontology: https://www.w3.org/2019/wot/td#
  * @param clusterId the Matter cluster ID
  * @returns {string[]} the array of ontologies implemented in this Matter cluster
  */
-export const getMatterClusterOntologies = (clusterId: string): string[] => {
+export const getMatterClustersAffordances = (
+  clusterId: string,
+): [string, string][] => {
   const cluster = getMappedCluster(clusterId);
-  const ontologiesTypes = new Set<string>();
+  const ontologiesTypes = new Set<[string, string]>();
 
   for (const propertyId in cluster.properties) {
     const property = cluster.properties[propertyId];
-    if (property["@type"]) {
-      if (typeof property["@type"] === "string") {
-        ontologiesTypes.add(property["@type"]);
-      } else {
-        property["@type"].forEach((type) => ontologiesTypes.add(type));
+    for (const attribute of property.uriVariables.attribute.oneOf) {
+      if (attribute["@type"]) {
+        if (typeof attribute["@type"] === "string") {
+          ontologiesTypes.add(["td:hasPropertyAffordance", attribute["@type"]]);
+        } else {
+          attribute["@type"].forEach((type) =>
+            ontologiesTypes.add(["td:hasPropertyAffordance", type]),
+          );
+        }
       }
     }
   }
 
   for (const actionId in cluster.actions) {
     const action = cluster.actions[actionId];
-    if (action["@type"]) {
-      if (typeof action["@type"] === "string") {
-        ontologiesTypes.add(action["@type"]);
-      } else {
-        action["@type"].forEach((type) => ontologiesTypes.add(type));
+    for (const command of action.input.properties.command.oneOf) {
+      if (command["@type"]) {
+        if (typeof command["@type"] === "string") {
+          ontologiesTypes.add(["td:hasActionAffordance", command["@type"]]);
+        } else {
+          command["@type"].forEach((type) =>
+            ontologiesTypes.add(["td:hasActionAffordance", type]),
+          );
+        }
       }
     }
   }
