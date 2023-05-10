@@ -1,8 +1,10 @@
 // eslint-disable-next-line import/named
 import { ActorSubclass } from "@dfinity/agent";
 import fetch from "node-fetch";
-// eslint-disable-next-line import/named
-import { _SERVICE } from "../canisters/omnia_backend/omnia_backend.did.js";
+import {
+  DeviceAffordances,
+  _SERVICE,
+} from "../canisters/omnia_backend/omnia_backend.did";
 import { httpNonceChallenge } from "../utils/nonce-challenge.js";
 
 export class IcAgent {
@@ -52,7 +54,7 @@ export class IcAgent {
   }
 
   async registerDevice(
-    affordances: [string, string][],
+    affordances: DeviceAffordances,
   ): Promise<string | undefined> {
     try {
       const deviceRegistrationResult = await callMethodWithChallenge(

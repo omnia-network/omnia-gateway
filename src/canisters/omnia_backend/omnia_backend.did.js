@@ -64,6 +64,10 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_5 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   const Result_6 = IDL.Variant({ 'Ok' : UpdateValue, 'Err' : IDL.Text });
+  const DeviceAffordances = IDL.Record({
+    'properties' : IDL.Vec(IDL.Text),
+    'actions' : IDL.Vec(IDL.Text),
+  });
   const RegisteredDeviceIndex = IDL.Record({ 'device_uid' : IDL.Text });
   const RegisteredDeviceValue = IDL.Record({
     'required_headers' : IDL.Opt(IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))),
@@ -96,11 +100,7 @@ export const idlFactory = ({ IDL }) => {
     'http_request_update' : IDL.Func([HttpRequest], [HttpResponse], []),
     'initGateway' : IDL.Func([IDL.Text], [Result_5], []),
     'pairNewDevice' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Result_6], []),
-    'registerDevice' : IDL.Func(
-        [IDL.Text, IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
-        [Result_7],
-        [],
-      ),
+    'registerDevice' : IDL.Func([IDL.Text, DeviceAffordances], [Result_7], []),
     'registerGateway' : IDL.Func(
         [IDL.Text, GatewayRegistrationInput],
         [Result_8],
@@ -110,6 +110,4 @@ export const idlFactory = ({ IDL }) => {
     'setEnvironment' : IDL.Func([IDL.Text], [Result_9], []),
   });
 };
-export const init = ({ IDL }) => {
-  return [IDL.Opt(IDL.Text), IDL.Text, IDL.Text, IDL.Text];
-};
+export const init = ({ IDL }) => { return [IDL.Opt(IDL.Text), IDL.Text]; };

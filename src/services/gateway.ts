@@ -13,7 +13,7 @@ import { ProxyClient } from "../proxy/proxy-client.js";
 import { MatterWotDevice } from "../thngs/matter-wot-device.js";
 import {
   generateThingDescription,
-  getMatterClustersAffordances,
+  getMatterClusterAffordances,
 } from "../utils/matter-wot-mapping.js";
 import { Database } from "./local-db.js";
 import type {
@@ -190,20 +190,28 @@ export class OmniaGateway {
         const deviceClusters =
           await this._matterController.getDeviceAvailableClusters(deviceNodeId);
 
-        // register device on backend and get device id
-        // we use a set to avoid duplicates
-        const affordances = new Set<[string, string]>();
+        // we use sets to avoid duplicates
+        const affordances = {
+          properties: new Set<string>(),
+          actions: new Set<string>(),
+        };
         for (const cluster in deviceClusters) {
-          getMatterClustersAffordances(cluster).forEach((ontology) =>
-            affordances.add(ontology),
+          const clusterAffordances = getMatterClusterAffordances(cluster);
+          clusterAffordances.properties.forEach((property) =>
+            affordances.properties.add(property),
+          );
+          clusterAffordances.actions.forEach((action) =>
+            affordances.actions.add(action),
           );
         }
 
         console.log("Registering device with affordances:", affordances);
 
-        const deviceId = await this._icAgent.registerDevice(
-          Array.from(affordances),
-        );
+        // register device on backend and get device id
+        const deviceId = await this._icAgent.registerDevice({
+          properties: Array.from(affordances.properties),
+          actions: Array.from(affordances.actions),
+        });
         if (deviceId) {
           const device = await this._localDb.storeCommissionedDevice(deviceId, {
             id: deviceId,

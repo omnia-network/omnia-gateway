@@ -52,32 +52,36 @@ export const generateThingDescription = (
 };
 
 /**
- * Get (predicate, object) tuples for a Matter cluster. E.g.: a device with Matter cluster `6` can have this tuples:
+ * Get SAREF properties and actions for a Matter cluster. E.g.: a device with Matter cluster `6` can have this affordances:
  * ```
- * (td:hasPropertyAffordance, saref:OnOffState)
- * (td:hasActionAffordance, saref:OffCommand)
- * (td:hasActionAffordance, saref:OnCommand)
+ * properties: ["OnOffState", ...],
+ * actions: ["OnCommand", "OffCommand", ...],
  * ...
  * ```
- * For predicates, we use the Thing Description Ontology: https://www.w3.org/2019/wot/td#
  * @param clusterId the Matter cluster ID
- * @returns {string[]} the array of ontologies implemented in this Matter cluster
+ * @returns an object with `properties` and `actions` arrays
  */
-export const getMatterClustersAffordances = (
+export const getMatterClusterAffordances = (
   clusterId: string,
-): [string, string][] => {
+): {
+  properties: string[];
+  actions: string[];
+} => {
   const cluster = getMappedCluster(clusterId);
-  const ontologiesTypes = new Set<[string, string]>();
+  const ontologiesTypes = {
+    properties: new Set<string>(),
+    actions: new Set<string>(),
+  };
 
   for (const propertyId in cluster.properties) {
     const property = cluster.properties[propertyId];
     for (const attribute of property.uriVariables.attribute.oneOf) {
       if (attribute["@type"]) {
         if (typeof attribute["@type"] === "string") {
-          ontologiesTypes.add(["td:hasPropertyAffordance", attribute["@type"]]);
+          ontologiesTypes.properties.add(attribute["@type"]);
         } else {
           attribute["@type"].forEach((type) =>
-            ontologiesTypes.add(["td:hasPropertyAffordance", type]),
+            ontologiesTypes.properties.add(type),
           );
         }
       }
@@ -89,15 +93,16 @@ export const getMatterClustersAffordances = (
     for (const command of action.input.properties.command.oneOf) {
       if (command["@type"]) {
         if (typeof command["@type"] === "string") {
-          ontologiesTypes.add(["td:hasActionAffordance", command["@type"]]);
+          ontologiesTypes.actions.add(command["@type"]);
         } else {
-          command["@type"].forEach((type) =>
-            ontologiesTypes.add(["td:hasActionAffordance", type]),
-          );
+          command["@type"].forEach((type) => ontologiesTypes.actions.add(type));
         }
       }
     }
   }
 
-  return Array.from(ontologiesTypes);
+  return {
+    properties: Array.from(ontologiesTypes.properties),
+    actions: Array.from(ontologiesTypes.actions),
+  };
 };

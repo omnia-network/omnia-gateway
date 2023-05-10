@@ -3,6 +3,10 @@
 import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 
+export interface DeviceAffordances {
+  'properties' : Array<string>,
+  'actions' : Array<string>,
+}
 export interface EnvironmentCreationInput { 'env_name' : string }
 export interface EnvironmentCreationResult {
   'env_uid' : string,
@@ -92,7 +96,7 @@ export interface _SERVICE {
   'http_request_update' : ActorMethod<[HttpRequest], HttpResponse>,
   'initGateway' : ActorMethod<[string], Result_5>,
   'pairNewDevice' : ActorMethod<[string, string, string], Result_6>,
-  'registerDevice' : ActorMethod<[string, Array<[string, string]>], Result_7>,
+  'registerDevice' : ActorMethod<[string, DeviceAffordances], Result_7>,
   'registerGateway' : ActorMethod<[string, GatewayRegistrationInput], Result_8>,
   'resetEnvironment' : ActorMethod<[string], Result_9>,
   'setEnvironment' : ActorMethod<[string], Result_9>,
