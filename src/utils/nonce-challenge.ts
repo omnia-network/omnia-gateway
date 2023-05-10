@@ -10,7 +10,8 @@ export const httpNonceChallenge = async (customFetch: typeof fetch) => {
   const nonce = getNonce();
 
   const res = await customFetch(
-    `${ENV_VARIABLES.OMNIA_BACKEND_HOST_URL}/?canisterId=${ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID}`,
+    // TODO: handle canister address when hosted on the IC
+    `${ENV_VARIABLES.OMNIA_BACKEND_HOST_URL}/ip-challenge?canisterId=${ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID}`,
     {
       method: "POST",
       headers: {
