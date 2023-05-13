@@ -54,7 +54,7 @@
     "lint": "eslint . --ext .ts --ext .mts",
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "prettier": "prettier --config .prettierrc --write .",
+    "prettier": "prettier --config .prettierrc --write . '!./volumes'",
     "test:watch": "jest --watch",
     "generate:types": "cd scripts && ./cli/generate-omnia-backend-types.sh",
     "generate:matter-clusters": "OUTPUT_JSON_FILE_PATH=./matter/clusters.json npx ts-node --esm ./scripts/ts/generate-matter-clusters.ts",

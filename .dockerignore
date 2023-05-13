@@ -1,0 +1,16 @@
+node_modules/
+.env*
+rsconfig.tsbuildinfo
+data/
+build/
+logs/
+coverage/
+bin/
+__tests__/
+scripts/
+volumes/
+nginx/
+.editorconfig
+Dockerfile
+docker-compose.yaml
+.dockerignore

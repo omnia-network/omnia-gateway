@@ -1,2 +1,8 @@
 /**/*.js
 src/canisters/**/*
+volumes/**/*
+node_modules/**/*
+build/**/*
+data/**/*
+logs/**/*
+patches/**/*

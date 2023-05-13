@@ -1,5 +1,7 @@
 build/
 coverage/
 data/
+patches/**/*
+volumes/**/*
 matter/*.json
 src/canisters/**/*

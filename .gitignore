@@ -33,3 +33,6 @@ data/
 
 # Typescript
 tsconfig.tsbuildinfo
+
+# Docker volumes
+volumes/

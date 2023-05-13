@@ -111,7 +111,8 @@ export class OmniaGateway {
 
     this._wotServient.addServer(
       new bindingHttp.HttpServer({
-        address: "0.0.0.0",
+        // we can listen only to localhost because NGINX will proxy the requests
+        address: "127.0.0.1",
         port: this.wotServientPort,
       }),
     );

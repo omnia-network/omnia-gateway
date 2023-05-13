@@ -1,0 +1,55 @@
+version: "3.0"
+
+services:
+  omnia_gateway:
+    image: omnia_gateway:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omnia_gateway
+    restart: always
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - OMNIA_BACKEND_CANISTER_ID=${OMNIA_BACKEND_CANISTER_ID}
+      - OMNIA_BACKEND_HOST_URL=${OMNIA_BACKEND_HOST_URL}
+      - OMNIA_BACKEND_ROOT_KEY_HEX=${OMNIA_BACKEND_ROOT_KEY_HEX}
+
+      - MATTER_CONTROLLER_CHIP_WS_PORT=${MATTER_CONTROLLER_CHIP_WS_PORT}
+      - MATTER_CONTROLLER_CHIP_TOOL_PATH=/app/bin/chip-tool
+      - DISABLE_MATTER_CONTROLLER=${DISABLE_MATTER_CONTROLLER}
+
+      - WIFI_SSID=${WIFI_SSID}
+      - WIFI_PASSWORD=${WIFI_PASSWORD}
+
+      - SERVIENT_PORT=${SERVIENT_PORT}
+
+      - USE_PROXY=${USE_PROXY}
+      - OMNIA_PROXY_URL=${OMNIA_PROXY_URL}
+      - OMNIA_PROXY_WG_ADDRESS=${OMNIA_PROXY_WG_ADDRESS}
+    volumes:
+      # mount chip-tool
+      - ${MATTER_CONTROLLER_CHIP_TOOL_PATH}:/app/bin/chip-tool
+      # mount dbus for bluez
+      - /run/dbus:/run/dbus:ro
+      - /etc/localtime:/etc/localtimne:ro
+      # mount data and logs
+      - ./volumes/gateway/data:/app/data
+      - ./volumes/gateway/logs:/app/logs
+    privileged: true
+    network_mode: host
+
+  nginx_reverse_proxy:
+    image: nginx:latest
+    container_name: nginx_reverse_proxy
+    restart: always
+    environment:
+      - LISTEN_PORT=${LISTEN_PORT}
+      - GATEWAY_URL=http://127.0.0.1:${SERVIENT_PORT}
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template
+      - ./volumes/nginx/cache:/cache
+    depends_on:
+      - omnia_gateway
+    network_mode: host
