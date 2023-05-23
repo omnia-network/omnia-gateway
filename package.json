@@ -5,6 +5,7 @@
   "engines": {
     "node": ">=16"
   },
+  "license": "MIT",
   "type": "module",
   "devDependencies": {
     "@babel/core": "^7.21.4",
@@ -31,6 +32,7 @@
     "eslint-plugin-jest": "~25.2.2",
     "http-proxy-cli": "^2.1.0",
     "jest": "^28.1.3",
+    "license-checker": "^25.0.1",
     "patch-package": "^6.5.1",
     "prettier": "~2.4.1",
     "remote": "^0.2.6",
@@ -58,7 +60,8 @@
     "test:watch": "jest --watch",
     "generate:types": "cd scripts && ./cli/generate-omnia-backend-types.sh",
     "generate:matter-clusters": "OUTPUT_JSON_FILE_PATH=./matter/clusters.json npx ts-node --esm ./scripts/ts/generate-matter-clusters.ts",
-    "generate:matter-wot-mapping": "CLUSTERS_JSON_FILE_PATH=./matter/clusters.json MATTER_WOT_MAPPING_FILE_PATH=./matter/wot-mapping.json npx ts-node --esm ./scripts/ts/generate-matter-wot-mapping.ts"
+    "generate:matter-wot-mapping": "CLUSTERS_JSON_FILE_PATH=./matter/clusters.json MATTER_WOT_MAPPING_FILE_PATH=./matter/wot-mapping.json npx ts-node --esm ./scripts/ts/generate-matter-wot-mapping.ts",
+    "report:licenses": "license-checker --summary"
   },
   "dependencies": {
     "@dfinity/agent": "^0.15.5",
