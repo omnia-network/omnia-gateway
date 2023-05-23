@@ -11,6 +11,9 @@ In the current version, the Omnia Gateway supports [Matter](https://csa-iot.org/
 
 We want to expand the support to **HTTP**, so that the Omnia Gateway can be deployed on top of any other IoT gateway that already handles the IoT protocol of that specific use case.
 
+### WoT mappings
+To make the underlying IoT protocols interoperable, the Omnia Gateway uses the [Web of Things](https://www.w3.org/WoT/) (WoT) standard. An example of how Matter is mapped to WoT can be found in [wot-mapping.json](./matter/wot-mapping.json). This JSON file is generated using the [generate-matter-wot-mapping](./scripts/ts/generate-matter-wot-mapping.ts) script.
+
 ## Getting started
 The current version has been tested on a **Raspberry Pi 4** (with *Ubuntu Server 22.04 LTS (64-bit)* OS).
 
@@ -39,6 +42,21 @@ Make sure Docker engine is running and then run the following command:
 docker compose up
 ```
 This will build the Gateway Docker image and run it.
+
+## Tests
+We use [Jest](https://jestjs.io/) to run tests. All tests are in the [`__tests__`](./__tests__/) folder.
+
+Currently, only few unit tests are available.
+
+To run tests, simply run:
+```bash
+npm test
+```
+
+To have also the coverage report, run:
+```bash
+npm run test:coverage
+```
 
 ## License
 Licensed under the [MIT License](./LICENSE).
