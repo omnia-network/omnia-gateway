@@ -96,10 +96,10 @@ export class OmniaGateway {
       ? this._proxyClient.proxyFetch.bind(this._proxyClient)
       : fetch;
 
-    // the IC agent must be instantiated after the proxy client, because it can use the proxy fetch
+    // the IC agent must be instantiated after the proxy client, because it uses the fetch from proxy client if proxy is enabled
     const omnia_backend = createOmniaBackend({
       agentOptions: {
-        host: ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
+        host: ENV_VARIABLES.DFX_NETWORK === 'ic' ? 'https://icp0.io' : ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
         fetch: customFetch,
         identity: icIdentity,
       },
