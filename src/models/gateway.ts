@@ -14,3 +14,15 @@ export type OmniaGatewayOptions = {
    */
   standaloneMode?: boolean;
 };
+
+export type AppDevices = {
+  end_devices: [Devices]
+};
+
+type Devices = {
+  ids: Ids
+};
+
+type Ids = {
+  device_id: string
+};
