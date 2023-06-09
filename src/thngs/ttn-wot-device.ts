@@ -82,18 +82,41 @@ export class TtnWotDevice {
   }
 
   private async propertyReadHandler(
-    _property: string,
+    property: string,
     _options?: WoT.InteractionOptions,
     ) {
-    const response = await fetch(`https://eu1.cloud.thethings.network/api/v3/as/applications/smart-home-1234567890/devices/${this.td.title}/packages/storage/uplink_message`, {
+    const response = await fetch(`https://eu1.cloud.thethings.network/api/v3/as/applications/smart-home-1234567890/devices/${this.td.title}/packages/storage/uplink_message?limit=1&order=-received_at`, {
       method: 'get',
       headers: {
         'Authorization': 'Bearer NNSXS.SFJFPV2SNZAAR7AHDK2K4KTT4U36RSQSKM37VHI.5JACEQG2JONTOIZKA4NNX5JRKQSMX5FSOT37EN2YWDSRFAQ46R5Q',
         'Accept': 'application/json'
       }
     });
-    const data = await response.text();
+    const data = await response.json() as {
+      result: {
+        uplink_message: {
+          frm_payload: string
+        }
+      };
+    };
 
-    return data;
+    let readOffset = 0;
+
+    switch (property) {
+      case "temperature":
+        readOffset = 0;
+        break;
+      case "humidity":
+        readOffset = 4;
+        break;
+      case "co2":
+        readOffset = 8;
+        break;
+    }
+
+    const dataBuf = Buffer.from(data.result.uplink_message.frm_payload, 'base64');
+    const value = dataBuf.readFloatBE(readOffset);
+
+    return value;
   }
 }
