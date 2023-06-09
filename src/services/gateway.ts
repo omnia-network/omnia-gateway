@@ -41,10 +41,14 @@ export class OmniaGateway {
 
   //// Matter Controller
   private _matterController: MatterController;
+  private _disableMatterController = false;
 
   //// Proxy
   private _useProxy = false;
   private _proxyClient: ProxyClient;
+
+  //// Configuration
+  private _standaloneMode = false;
 
   // TODO: add a logger instance for the OmniaGateway
 
@@ -52,9 +56,8 @@ export class OmniaGateway {
     // must come before other services are initialized
     this._localDb = new Database();
 
-    if (options.useProxy) {
-      this._useProxy = options.useProxy;
-
+    this._useProxy = options.useProxy ?? false;
+    if (this._useProxy) {
       this._proxyClient = new ProxyClient(
         ENV_VARIABLES.OMNIA_PROXY_URL,
         ENV_VARIABLES.OMNIA_PROXY_WG_ADDRESS,
@@ -65,12 +68,19 @@ export class OmniaGateway {
     this.wotServientPort = options.wotServientPort;
     this._wotServient = new Servient();
 
-    this._matterController = new MatterController(
-      options.matterControllerChipWsPort,
-      options.matterControllerChipToolPath,
-    );
+    this._disableMatterController = options.disableMatterController ?? false;
+    if (!this._disableMatterController) {
+      this._matterController = new MatterController(
+        options.matterControllerChipWsPort,
+        options.matterControllerChipToolPath,
+      );
+    }
 
-    this._icIdentity = new IcIdentity(options.icIndentitySeedPhrase);
+    this._standaloneMode = options.standaloneMode ?? false;
+    // initialize the IC identity only if we are not in standalone mode
+    if (!this._standaloneMode) {
+      this._icIdentity = new IcIdentity(options.icIndentitySeedPhrase);
+    }
   }
 
   async start(): Promise<void> {
@@ -89,25 +99,29 @@ export class OmniaGateway {
       await this._proxyClient.connect();
     }
 
-    // get the IC identity
-    const icIdentity = this._icIdentity.getIdentity();
+    if (!this._standaloneMode) {
+      // get the IC identity
+      const icIdentity = this._icIdentity.getIdentity();
 
-    const customFetch = this._useProxy
-      ? this._proxyClient.proxyFetch.bind(this._proxyClient)
-      : fetch;
+      const customFetch = this._useProxy
+        ? this._proxyClient.proxyFetch.bind(this._proxyClient)
+        : fetch;
 
-    // the IC agent must be instantiated after the proxy client, because it uses the fetch from proxy client if proxy is enabled
-    const omnia_backend = createOmniaBackend({
-      agentOptions: {
-        host: ENV_VARIABLES.DFX_NETWORK === 'ic' ? 'https://icp0.io' : ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
-        fetch: customFetch,
-        identity: icIdentity,
-      },
-    });
-    this._icAgent = new IcAgent(omnia_backend, customFetch);
-    await this._icAgent.start();
+      // the IC agent must be instantiated after the proxy client, because it uses the fetch from proxy client if proxy is enabled
+      const omnia_backend = createOmniaBackend({
+        agentOptions: {
+          host: ENV_VARIABLES.DFX_NETWORK === 'ic' ? 'https://icp0.io' : ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
+          fetch: customFetch,
+          identity: icIdentity,
+        },
+      });
+      this._icAgent = new IcAgent(omnia_backend, customFetch);
+      await this._icAgent.start();
+    }
 
-    await this._matterController.start();
+    if (!this._disableMatterController) {
+      await this._matterController.start();
+    }
 
     this._wotServient.addServer(
       new bindingHttp.HttpServer({
@@ -118,18 +132,22 @@ export class OmniaGateway {
     );
     this._wotNamespace = await this._wotServient.start();
 
-    // get registered devices in the backend
-    const registeredDevices = await this._icAgent.actor.getRegisteredDevices();
+    let registeredDevicesIds: string[] | null = null;
 
-    const registeredDevicesIds: string[] = [];
+    if (!this._standaloneMode) {
+      // get registered devices in the backend
+      const registeredDevices = await this._icAgent.actor.getRegisteredDevices();
 
-    if ("Ok" in registeredDevices) {
-      registeredDevicesIds.push(...registeredDevices.Ok);
-    } else if ("Err" in registeredDevices) {
-      console.error(
-        `Couldn't get registered devices: ${registeredDevices.Err}`,
-      );
-      // TODO: handle the error better, maybe retry or exit
+      registeredDevicesIds = [];
+
+      if ("Ok" in registeredDevices) {
+        registeredDevicesIds.push(...registeredDevices.Ok);
+      } else if ("Err" in registeredDevices) {
+        console.error(
+          `Couldn't get registered devices: ${registeredDevices.Err}`,
+        );
+        // TODO: handle the error better, maybe retry or exit
+      }
     }
 
     for (const deviceId in db.commissionedDevices) {
@@ -138,28 +156,35 @@ export class OmniaGateway {
           deviceId,
         );
 
-        // this should throw an error if the device is not connected or paired anymore
-        const deviceInfo = await this._matterController.getDeviceInfo(
-          new NodeId(BigInt(localDeviceData.matterNodeId)),
-        );
+        if (!this._disableMatterController) {
+          // this should throw an error if the device is not connected or paired anymore
+          const deviceInfo = await this._matterController.getDeviceInfo(
+            new NodeId(BigInt(localDeviceData.matterNodeId)),
+          );
 
-        // just check if we're talking to the same device
-        if (
-          deviceInfo.productId !== localDeviceData.matterInfo.productId ||
-          deviceInfo.vendorId !== localDeviceData.matterInfo.vendorId
-        ) {
-          // should never happen
-          throw new Error("Device is not the same");
+          // just check if we're talking to the same device
+          if (
+            deviceInfo.productId !== localDeviceData.matterInfo.productId ||
+            deviceInfo.vendorId !== localDeviceData.matterInfo.vendorId
+          ) {
+            // should never happen
+            throw new Error("Matter device is not the same");
+          }
         }
 
-        // check if device is still registered in backend
-        if (registeredDevicesIds.includes(deviceId)) {
-          // expose the device if all checks passed
-          this.exposeDevice(localDeviceData);
-        } else {
-          await this._localDb.removeCommissionedDevice(deviceId);
-          // TODO: we should also unpair the device from the controller in certain cases
+        if (!this._standaloneMode) {
+          // check if device is still registered in backend, otherwise remove it from the local database
+          if (!registeredDevicesIds?.includes(deviceId)) {
+            await this._localDb.removeCommissionedDevice(deviceId);
+            // TODO: we should also unpair the device from the controller in certain cases
+
+            continue;
+          }
         }
+
+        // expose the device if all checks passed
+        this.exposeDevice(localDeviceData);
+
       } catch (err) {
         console.error(err);
         console.log(
@@ -172,9 +197,20 @@ export class OmniaGateway {
       }
     }
 
-    // this should be triggered only if the connection to the backend is working,
-    // otherwise we end up polling continuously without any result
-    // TODO: to be moved to the IcAgent, passing a callback function from this instance for when an update is received
+    if (!this._standaloneMode) {
+      // start polling for updates
+      this.startPollingForUpdates();
+    }
+
+    console.log("Omnia Gateway started");
+  }
+
+  /**
+   * Polling should be started only if the connection to the backend is working,
+   * otherwise we end up polling continuously without any result
+   * TODO: to be moved to the IcAgent, passing a callback function from this instance for when an update is received
+   */
+  private startPollingForUpdates() {
     setInterval(async () => {
       const pairingInfo = await this._icAgent.pollForUpdates();
       if (pairingInfo !== undefined) {

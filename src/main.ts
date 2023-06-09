@@ -2,6 +2,7 @@ import { ENV_VARIABLES } from "./constants/environment.js";
 import { OmniaGateway } from "./services/gateway.js";
 
 const gateway = new OmniaGateway({
+  standaloneMode: ENV_VARIABLES.STANDALONE_MODE,
   wotServientPort: parseInt(ENV_VARIABLES.SERVIENT_PORT),
   matterControllerChipWsPort: parseInt(
     ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT,
