@@ -10,6 +10,7 @@ import { IcIdentity } from "../ic-agent/identity.js";
 import { MatterController } from "../matter-controller/controller.js";
 import { AppDevices, OmniaGatewayOptions } from "../models/gateway.js";
 import { ProxyClient } from "../proxy/proxy-client.js";
+import { HttpWotDevice } from "../thngs/http-wot-device.js";
 import { TtnWotDevice } from './../thngs/ttn-wot-device.js';
 import { Database } from "./local-db.js";
 
@@ -111,13 +112,13 @@ export class OmniaGateway {
 
     this._wotServient.addServer(
       new bindingHttp.HttpServer({
-        // we can listen only to localhost because NGINX will proxy the requests
-        address: "127.0.0.1",
+        address: "0.0.0.0",
         port: this.wotServientPort,
       }),
     );
     this._wotNamespace = await this._wotServient.start();
 
+    // get TTN temperature, humidity and co2 sensor
     const response = await fetch('https://eu1.cloud.thethings.network/api/v3/applications/smart-home-1234567890/devices', {
       method: 'get',
       headers: {
@@ -126,9 +127,12 @@ export class OmniaGateway {
       }
     });
     const data = await response.json() as AppDevices;
-    console.log(data.end_devices[0].ids.device_id);
 
+    // expose TTN sensor
     this.exposeTtnDevice(data.end_devices[0].ids.device_id);
+
+    // expose HTTP led
+    this.exposeHttpDevice();
 
     console.log("Omnia Gateway started");
   }
@@ -199,5 +203,42 @@ export class OmniaGateway {
     const ttnWotDevice = new TtnWotDevice(this._wotNamespace, td);
 
     await ttnWotDevice.startDevice();
+  }
+
+  private async exposeHttpDevice() {
+    const td: WoT.ThingDescription = {
+      "@context": [
+        "https://www.w3.org/2019/wot/td/v1",
+        {
+          "@language": "en",
+          saref: "https://saref.etsi.org/core/",
+        },
+      ],
+      "@type": ["saref:Device"],
+      id: `urn:uuid:1234567890`,
+      title: "1234567890",
+      // description: "",
+      securityDefinitions: {
+        "": {
+          scheme: "nosec",
+        },
+      },
+      security: "",
+      properties: {},
+      actions: {
+        setColor: {
+          input: {
+            type: "string",
+          },
+          forms: [{
+            href: "",
+          }]
+        }
+      },
+    };
+
+    const httpWotDevice = new HttpWotDevice(this._wotNamespace, td);
+
+    await httpWotDevice.startDevice();
   }
 }

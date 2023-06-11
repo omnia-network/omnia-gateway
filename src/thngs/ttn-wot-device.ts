@@ -10,16 +10,12 @@ export class TtnWotDevice {
   deviceWoT: typeof WoT;
   td: WoT.ThingDescription;
 
-  private tdDirectory: string;
-
   constructor(
     deviceWoT: typeof WoT,
     thingDescription: WoT.ThingDescription,
-    tdDirectory?: string,
   ) {
     this.deviceWoT = deviceWoT;
     this.td = thingDescription;
-    if (tdDirectory) this.tdDirectory = tdDirectory;
   }
 
   public async startDevice() {
@@ -29,40 +25,6 @@ export class TtnWotDevice {
 
     await this.thing.expose();
     console.log("Exposed Thing:", this.td.title);
-
-    if (this.tdDirectory) {
-      this.register(this.tdDirectory);
-    }
-  }
-
-  public register(directory: string) {
-    console.log("Registering TD in directory: " + directory);
-    fetch(directory, {
-      method: "POST",
-      body: JSON.stringify(this.thing.getThingDescription()),
-      headers: { "Content-Type": "application/json" },
-    })
-      .then((response) => {
-        if (response.status < 300) {
-          console.log("TD registered!");
-        } else {
-          console.warn(
-            "Failed to register TD. Will try again in 10 Seconds...",
-          );
-          setTimeout(() => {
-            this.register(directory);
-          }, 10000);
-          return;
-        }
-      })
-      .catch((error) => {
-        console.debug(error);
-        console.warn("Failed to register TD. Will try again in 10 Seconds...");
-        setTimeout(() => {
-          this.register(directory);
-        }, 10000);
-        return;
-      });
   }
 
   private initializeProperties() {
@@ -116,7 +78,7 @@ export class TtnWotDevice {
 
     const dataBuf = Buffer.from(data.result.uplink_message.frm_payload, 'base64');
     const value = dataBuf.readFloatBE(readOffset);
-
+    console.log(value);
     return value;
   }
 }
