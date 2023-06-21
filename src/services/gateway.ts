@@ -11,6 +11,7 @@ import { IcIdentity } from "../ic-agent/identity.js";
 import { MatterController } from "../matter-controller/controller.js";
 import { ProxyClient } from "../proxy/proxy-client.js";
 import { MatterWotDevice } from "../thngs/matter-wot-device.js";
+import { SimpleWoTDevice } from "../thngs/simple-wot-device.js";
 import {
   generateThingDescription,
   getMatterClusterAffordances,
@@ -43,6 +44,7 @@ export class OmniaGateway {
   private _wotServient: Servient;
   private _wotNamespace: typeof WoT;
   readonly wotHttpServerConfig: bindingHttp.HttpConfig;
+  readonly exposeSimpleWoTDevice: boolean;
 
   //// local database
   private _localDb: Database;
@@ -85,6 +87,7 @@ export class OmniaGateway {
     }
 
     this._standaloneMode = options.standaloneMode ?? false;
+    this.exposeSimpleWoTDevice = options.exposeSimpleDevice ?? false;
 
     // initialize the IC related properties only if we are not in standalone mode
     if (!this._standaloneMode) {
@@ -219,6 +222,10 @@ export class OmniaGateway {
       this.startPollingForUpdates();
     }
 
+    if (this.exposeSimpleWoTDevice) {
+      await this.exposeSimpleDevice();
+    }
+
     this.logger.info("Omnia Gateway started");
   }
 
@@ -331,5 +338,11 @@ export class OmniaGateway {
     if (this._accessKeysMiddleware && this._accessKeysMiddleware.stop) {
       this._accessKeysMiddleware.stop();
     }
+  }
+
+  private async exposeSimpleDevice() {
+    const httpWotDevice = new SimpleWoTDevice(this._wotNamespace);
+
+    await httpWotDevice.startDevice();
   }
 }

@@ -4,6 +4,7 @@ dotenv.config();
 
 export const ENV_VARIABLES = {
   STANDALONE_MODE: process.env.STANDALONE_MODE === "true",
+  EXPOSE_SIMPLE_DEVICE: process.env.EXPOSE_SIMPLE_DEVICE === "true",
 
   OMNIA_BACKEND_CANISTER_ID: process.env.OMNIA_BACKEND_CANISTER_ID || "",
   OMNIA_BACKEND_HOST_URL: process.env.OMNIA_BACKEND_HOST_URL || "",

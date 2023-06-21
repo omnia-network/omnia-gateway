@@ -3,6 +3,7 @@ import { OmniaGateway } from "./services/gateway.js";
 
 const gateway = new OmniaGateway({
   standaloneMode: ENV_VARIABLES.STANDALONE_MODE,
+  exposeSimpleDevice: ENV_VARIABLES.EXPOSE_SIMPLE_DEVICE,
 
   wotHttpServerConfig: {
     // we should listen only to localhost because NGINX will proxy the requests from the outside
