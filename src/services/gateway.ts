@@ -109,6 +109,8 @@ export class OmniaGateway {
 
     if (this._useProxy) {
       await this._proxyClient.connect();
+      // set the base uri for the TDs to be the proxy url
+      this.wotHttpServerConfig.baseUri = this._proxyClient.proxyUrl;
     }
 
     if (!this._standaloneMode) {
