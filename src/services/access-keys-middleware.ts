@@ -233,6 +233,10 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       incomingAccessKeys = await this.getAllIncomingAccessKeys();
     }
 
+    if (incomingAccessKeys.length === 0) {
+      return;
+    }
+
     this.logger.debug(`Verifying ${incomingAccessKeys.length} access keys`);
 
     const allowed = await this._localDb.getAccessKeys("allowed");
