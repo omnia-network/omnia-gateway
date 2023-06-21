@@ -15,14 +15,17 @@ import {
   generateThingDescription,
   getMatterClusterAffordances,
 } from "../utils/matter-wot-mapping.js";
+import {
+  BaseAccessKeysMiddleware,
+  IcAccessKeysMiddleware,
+} from "./access-keys-middleware.js";
 import { Database } from "./local-db.js";
+import { getLogger } from "./logger.js";
 import type {
   CHIPParsedResult,
   DbDevice,
   OmniaGatewayOptions,
 } from "../models";
-import { BaseAccessKeysMiddleware, IcAccessKeysMiddleware } from "./access-keys-middleware.js";
-import { getLogger } from "./logger.js";
 
 const TD_DIRECTORY_URI = "";
 
@@ -34,7 +37,7 @@ export class OmniaGateway {
   private _icIdentity: IcIdentity;
 
   //// Access Keys
-  private _accessKeysMiddleware: BaseAccessKeysMiddleware; 
+  private _accessKeysMiddleware: BaseAccessKeysMiddleware;
 
   //// WoT
   private _wotServient: Servient;
@@ -116,7 +119,10 @@ export class OmniaGateway {
       // the IC agent must be instantiated after the proxy client, because it uses the fetch from proxy client if proxy is enabled
       const omnia_backend = createOmniaBackend({
         agentOptions: {
-          host: ENV_VARIABLES.DFX_NETWORK === 'ic' ? 'https://icp0.io' : ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
+          host:
+            ENV_VARIABLES.DFX_NETWORK === "ic"
+              ? "https://icp0.io"
+              : ENV_VARIABLES.OMNIA_BACKEND_HOST_URL,
           fetch: customFetch,
           identity: icIdentity,
         },
@@ -132,22 +138,23 @@ export class OmniaGateway {
     // initialize the WoT middleware only if there is an access key middleware
     if (this._accessKeysMiddleware) {
       await this._accessKeysMiddleware.init();
-      this.wotHttpServerConfig.middleware = new bindingHttp.HttpMiddleware(this._accessKeysMiddleware.handler);
+      this.wotHttpServerConfig.middleware = new bindingHttp.HttpMiddleware(
+        this._accessKeysMiddleware.handler,
+      );
     }
 
     // create the WoT server
     const httpServer = new bindingHttp.HttpServer(this.wotHttpServerConfig);
 
-    this._wotServient.addServer(
-      httpServer,
-    );
+    this._wotServient.addServer(httpServer);
     this._wotNamespace = await this._wotServient.start();
 
     let registeredDevicesIds: string[] | null = null;
 
     if (!this._standaloneMode) {
       // get registered devices in the backend
-      const registeredDevices = await this._icAgent.actor.getRegisteredDevices();
+      const registeredDevices =
+        await this._icAgent.actor.getRegisteredDevices();
 
       registeredDevicesIds = [];
 
@@ -194,8 +201,7 @@ export class OmniaGateway {
         }
 
         // expose the device if all checks passed
-        this.exposeDevice(localDeviceData);
-
+        await this.exposeDevice(localDeviceData);
       } catch (err) {
         this.logger.error(`Error while exposing device ${deviceId}: ${err}`);
         this.logger.warn(
@@ -253,7 +259,7 @@ export class OmniaGateway {
           );
         }
 
-        console.log("Registering device with affordances:", affordances);
+        this.logger.info("Registering device with affordances:", affordances);
 
         // register device on backend and get device id
         const deviceId = await this._icAgent.registerDevice({
@@ -271,7 +277,7 @@ export class OmniaGateway {
             matterClusters: deviceClusters,
           });
 
-          this.exposeDevice(device);
+          await this.exposeDevice(device);
         }
       }
     }, 5000);

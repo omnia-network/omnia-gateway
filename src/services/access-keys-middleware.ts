@@ -1,14 +1,16 @@
-import bindingHttp from "@node-wot/binding-http";
-import { IcAgent } from "../ic-agent/agent.js";
-import { Database } from "./local-db.js";
-import { Logger } from "winston";
-import { getLogger } from "./logger.js";
 import EventEmitter from "events";
-import { IncomingAccessKey } from "../models/local-db";
 import { Principal } from "@dfinity/principal";
+import bindingHttp from "@node-wot/binding-http";
+import { Logger } from "winston";
+import { IcAgent } from "../ic-agent/agent.js";
+import { IncomingAccessKey } from "../models/local-db";
+import { Database } from "./local-db.js";
+import { getLogger } from "./logger.js";
 
-type MiddlewareRequestHandlerArgs = Parameters<bindingHttp.MiddlewareRequestHandler>;
-type MiddlewareRequestHandlerReturn = ReturnType<bindingHttp.MiddlewareRequestHandler>;
+type MiddlewareRequestHandlerArgs =
+  Parameters<bindingHttp.MiddlewareRequestHandler>;
+type MiddlewareRequestHandlerReturn =
+  ReturnType<bindingHttp.MiddlewareRequestHandler>;
 
 /**
  * The base implementation for the HTTP middleware
@@ -24,7 +26,9 @@ export declare class BaseAccessKeysMiddleware {
   /**
    * Runs the logic to verify the access keys and eventually return the appropriate HTTP error.
    */
-  handler(...args: MiddlewareRequestHandlerArgs): MiddlewareRequestHandlerReturn;
+  handler(
+    ...args: MiddlewareRequestHandlerArgs
+  ): MiddlewareRequestHandlerReturn;
 
   /**
    * (OPTIONAL) Stops the middleware, for example by stopping the periodic checks.
@@ -96,7 +100,9 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
       return;
     }
 
-    let rawNonce = parseInt(req.headers["X-Omnia-Access-Key-Nonce"] as string);
+    const rawNonce = parseInt(
+      req.headers["X-Omnia-Access-Key-Nonce"] as string,
+    );
     if (isNaN(rawNonce)) {
       this.logger.warn("X-Omnia-Access-Key-Nonce is missing or invalid");
       res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
@@ -105,8 +111,12 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
     }
     const requestAccessKeyNonce = BigInt(rawNonce);
 
-    const requestAccessKeySignature = req.headers["X-Omnia-Access-Key-Signature"];
-    if (!requestAccessKeySignature || typeof requestAccessKeySignature !== "string") {
+    const requestAccessKeySignature =
+      req.headers["X-Omnia-Access-Key-Signature"];
+    if (
+      !requestAccessKeySignature ||
+      typeof requestAccessKeySignature !== "string"
+    ) {
       this.logger.warn("X-Omnia-Access-Key-Signature is missing or invalid");
       res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
       res.end("X-Omnia-Access-Key-Signature is missing or invalid");
@@ -128,16 +138,21 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
       receivedAt: new Date().getTime(),
       metadata: {
         canisterId: req.headers["X-Omnia-Access-Key-Canister-Id"] as string,
-      }
+      },
     };
 
     // check if the access key has already been allowed
-    const allowed = await this._localDb.getAccessKeys('allowed');
+    const allowed = await this._localDb.getAccessKeys("allowed");
     if (allowed[requestAccessKey]) {
-      const incoming = await this._localDb.getAccessKeys('incoming');
+      const incoming = await this._localDb.getAccessKeys("incoming");
 
       // a check to avoid simple replay attacks
-      if (incoming[requestAccessKey] && incoming[requestAccessKey].find((ak) => ak.nonce === requestAccessKeyNonce)) {
+      if (
+        incoming[requestAccessKey] &&
+        incoming[requestAccessKey].find(
+          (ak) => ak.nonce === requestAccessKeyNonce,
+        )
+      ) {
         this.logger.warn("Access key already used");
         res.statusCode = UNAUTHORIZED_STATUS_CODE;
         res.end("Access key already used");
@@ -150,7 +165,7 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
       }
 
       incoming[requestAccessKey].push(accessKey);
-      await this._localDb.storeAccessKeys('incoming', incoming);
+      await this._localDb.storeAccessKeys("incoming", incoming);
     } else {
       const verified = await this.verifyAccessKey(accessKey);
       if (!verified) {
@@ -164,7 +179,7 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
       allowed[requestAccessKey] = {
         lastVerifiedAt: new Date().getTime(),
       };
-      await this._localDb.storeAccessKeys('allowed', allowed);
+      await this._localDb.storeAccessKeys("allowed", allowed);
     }
 
     next();
@@ -178,7 +193,7 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
   }
 
   private async getAllIncomingAccessKeys(): Promise<IncomingAccessKey[]> {
-    const existingAccessKeys = await this._localDb.getAccessKeys('incoming');
+    const existingAccessKeys = await this._localDb.getAccessKeys("incoming");
     const accessKeys: IncomingAccessKey[] = [];
 
     for (const accessKey of Object.values(existingAccessKeys)) {
@@ -188,7 +203,9 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
     return accessKeys;
   }
 
-  private async verifyAccessKey(accessKey: IncomingAccessKey): Promise<boolean> {
+  private async verifyAccessKey(
+    accessKey: IncomingAccessKey,
+  ): Promise<boolean> {
     const response = await this._icAgent.actor.reportSignedRequest({
       unique_access_key: {
         key: accessKey.key,
@@ -205,13 +222,15 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
     return false;
   }
 
-  private async verifyAccessKeys(incomingAccessKeys: IncomingAccessKey[] | undefined): Promise<void> {
+  private async verifyAccessKeys(
+    incomingAccessKeys: IncomingAccessKey[] | undefined,
+  ): Promise<void> {
     if (!incomingAccessKeys) {
       incomingAccessKeys = await this.getAllIncomingAccessKeys();
     }
 
-    const allowed = await this._localDb.getAccessKeys('allowed');
-    const incoming = await this._localDb.getAccessKeys('incoming');
+    const allowed = await this._localDb.getAccessKeys("allowed");
+    const incoming = await this._localDb.getAccessKeys("incoming");
 
     for (const accessKey of Object.values(incomingAccessKeys)) {
       const verified = await this.verifyAccessKey(accessKey);
@@ -224,13 +243,15 @@ export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
 
       // in any case, we remove the access key from the incoming list
       // the access key is identified by the key and the nonce
-      incoming[accessKey.key] = incoming[accessKey.key].filter((ak) => ak.nonce !== accessKey.nonce);
+      incoming[accessKey.key] = incoming[accessKey.key].filter(
+        (ak) => ak.nonce !== accessKey.nonce,
+      );
       if (incoming[accessKey.key].length === 0) {
         delete incoming[accessKey.key];
       }
     }
 
-    await this._localDb.storeAccessKeys('allowed', allowed);
-    await this._localDb.storeAccessKeys('incoming', incoming);
+    await this._localDb.storeAccessKeys("allowed", allowed);
+    await this._localDb.storeAccessKeys("incoming", incoming);
   }
 }

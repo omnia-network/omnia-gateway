@@ -32,7 +32,13 @@ export type IncomingAccessKey = {
   signature: string;
   receivedAt?: Timestamp;
   metadata?: {
-    [key: string]: string | number | boolean | bigint | Record<string, unknown> | null;
+    [key: string]:
+      | string
+      | number
+      | boolean
+      | bigint
+      | Record<string, unknown>
+      | null;
   };
 };
 
@@ -45,7 +51,7 @@ export type AccessKeyIndex = IncomingAccessKey["key"];
 export type DbAccessKeys = {
   allowed: {
     [key: AccessKeyIndex]: VerifiedAccessKey;
-  },
+  };
   incoming: {
     [key: AccessKeyIndex]: IncomingAccessKey[];
   };
