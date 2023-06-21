@@ -18,7 +18,7 @@ server {
     proxy_set_header       Proxy-Connection "Keep-Alive";
 
     proxy_cache            STATIC;
-    proxy_cache_valid      any  10m;
+    proxy_cache_valid      any  30s;
     # here's the magic, we cache requests by the Idempotent-Key header
     proxy_cache_key        $http_idempotent_key;
     proxy_cache_methods    GET POST;
