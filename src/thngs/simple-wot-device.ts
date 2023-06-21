@@ -49,7 +49,7 @@ export class SimpleWoTDevice {
   deviceWoT: typeof WoT;
   td: WoT.ThingDescription;
 
-  value: string;
+  value = "";
 
   constructor(deviceWoT: typeof WoT) {
     this.deviceWoT = deviceWoT;
