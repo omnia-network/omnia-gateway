@@ -10,6 +10,8 @@ export const idlFactory = ({ IDL }) => {
     'Ok' : EnvironmentCreationResult,
     'Err' : IDL.Text,
   });
+  const Result_1 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Nat8), 'Err' : IDL.Text });
+  const Tokens = IDL.Record({ 'e8s' : IDL.Nat64 });
   const PairingInfo = IDL.Record({ 'payload' : IDL.Text });
   const UpdateValue = IDL.Record({
     'info' : PairingInfo,
@@ -21,7 +23,7 @@ export const idlFactory = ({ IDL }) => {
     'principal_id' : IDL.Text,
     'proxied_gateway_uid' : IDL.Opt(IDL.Text),
   });
-  const Result_1 = IDL.Variant({
+  const Result_2 = IDL.Variant({
     'Ok' : IDL.Vec(InitializedGatewayValue),
     'Err' : IDL.Text,
   });
@@ -31,11 +33,11 @@ export const idlFactory = ({ IDL }) => {
     'virtual_persona_principal_id' : IDL.Text,
     'virtual_persona_ip' : IDL.Text,
   });
-  const Result_2 = IDL.Variant({
+  const Result_3 = IDL.Variant({
     'Ok' : VirtualPersonaValue,
     'Err' : IDL.Text,
   });
-  const Result_3 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Text), 'Err' : IDL.Text });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Vec(IDL.Text), 'Err' : IDL.Text });
   const RegisteredGatewayValue = IDL.Record({
     'gateway_name' : IDL.Text,
     'gateway_ip' : IDL.Text,
@@ -44,7 +46,7 @@ export const idlFactory = ({ IDL }) => {
     'gateway_url' : IDL.Text,
     'proxied_gateway_uid' : IDL.Opt(IDL.Text),
   });
-  const Result_4 = IDL.Variant({
+  const Result_5 = IDL.Variant({
     'Ok' : IDL.Vec(RegisteredGatewayValue),
     'Err' : IDL.Text,
   });
@@ -62,8 +64,8 @@ export const idlFactory = ({ IDL }) => {
     'streaming_strategy' : IDL.Opt(IDL.Text),
     'status_code' : IDL.Nat16,
   });
-  const Result_5 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
-  const Result_6 = IDL.Variant({ 'Ok' : UpdateValue, 'Err' : IDL.Text });
+  const Result_6 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
+  const Result_7 = IDL.Variant({ 'Ok' : UpdateValue, 'Err' : IDL.Text });
   const DeviceAffordances = IDL.Record({
     'properties' : IDL.Vec(IDL.Text),
     'actions' : IDL.Vec(IDL.Text),
@@ -75,7 +77,7 @@ export const idlFactory = ({ IDL }) => {
     'device_url' : IDL.Text,
     'gateway_principal_id' : IDL.Text,
   });
-  const Result_7 = IDL.Variant({
+  const Result_8 = IDL.Variant({
     'Ok' : IDL.Tuple(RegisteredDeviceIndex, RegisteredDeviceValue),
     'Err' : IDL.Text,
   });
@@ -83,31 +85,51 @@ export const idlFactory = ({ IDL }) => {
     'gateway_name' : IDL.Text,
     'env_uid' : IDL.Text,
   });
-  const Result_8 = IDL.Variant({
+  const Result_9 = IDL.Variant({
     'Ok' : RegisteredGatewayValue,
     'Err' : IDL.Text,
   });
+  const UniqueAccessKey = IDL.Record({ 'key' : IDL.Text, 'nonce' : IDL.Nat });
+  const SignedRequest = IDL.Record({
+    'requester_canister_id' : IDL.Principal,
+    'unique_access_key' : UniqueAccessKey,
+    'signature_hex' : IDL.Text,
+  });
+  const AccessKeyValue = IDL.Record({
+    'key' : IDL.Text,
+    'transaction_hash' : IDL.Vec(IDL.Nat8),
+    'counter' : IDL.Nat,
+    'owner' : IDL.Principal,
+    'used_nonces' : IDL.Vec(IDL.Nat),
+  });
+  const Result_10 = IDL.Variant({ 'Ok' : AccessKeyValue, 'Err' : IDL.Text });
   const EnvironmentInfo = IDL.Record({ 'env_uid' : IDL.Text });
-  const Result_9 = IDL.Variant({ 'Ok' : EnvironmentInfo, 'Err' : IDL.Text });
+  const Result_11 = IDL.Variant({ 'Ok' : EnvironmentInfo, 'Err' : IDL.Text });
   return IDL.Service({
     'createEnvironment' : IDL.Func([EnvironmentCreationInput], [Result], []),
+    'executeRdfDbQuery' : IDL.Func([IDL.Text], [Result_1], ['query']),
+    'executeRdfDbQueryAsUpdate' : IDL.Func([IDL.Text], [Result_1], []),
+    'getAccessKeyPrice' : IDL.Func([], [Tokens], ['query']),
+    'getAccessKeyPriceAsUpdate' : IDL.Func([], [Tokens], []),
     'getGatewayUpdates' : IDL.Func([], [IDL.Opt(UpdateValue)], []),
-    'getInitializedGateways' : IDL.Func([IDL.Text], [Result_1], []),
-    'getProfile' : IDL.Func([IDL.Text], [Result_2], []),
-    'getRegisteredDevices' : IDL.Func([], [Result_3], []),
-    'getRegisteredGateways' : IDL.Func([IDL.Text], [Result_4], []),
+    'getInitializedGateways' : IDL.Func([IDL.Text], [Result_2], []),
+    'getProfile' : IDL.Func([IDL.Text], [Result_3], []),
+    'getRegisteredDevices' : IDL.Func([], [Result_4], []),
+    'getRegisteredGateways' : IDL.Func([IDL.Text], [Result_5], []),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
     'http_request_update' : IDL.Func([HttpRequest], [HttpResponse], []),
-    'initGateway' : IDL.Func([IDL.Text], [Result_5], []),
-    'pairNewDevice' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Result_6], []),
-    'registerDevice' : IDL.Func([IDL.Text, DeviceAffordances], [Result_7], []),
+    'initGateway' : IDL.Func([IDL.Text], [Result_6], []),
+    'obtainAccessKey' : IDL.Func([IDL.Nat64], [Result_6], []),
+    'pairNewDevice' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [Result_7], []),
+    'registerDevice' : IDL.Func([IDL.Text, DeviceAffordances], [Result_8], []),
     'registerGateway' : IDL.Func(
         [IDL.Text, GatewayRegistrationInput],
-        [Result_8],
+        [Result_9],
         [],
       ),
-    'resetEnvironment' : IDL.Func([IDL.Text], [Result_9], []),
-    'setEnvironment' : IDL.Func([IDL.Text], [Result_9], []),
+    'reportSignedRequest' : IDL.Func([SignedRequest], [Result_10], []),
+    'resetEnvironment' : IDL.Func([IDL.Text], [Result_11], []),
+    'setEnvironment' : IDL.Func([IDL.Text], [Result_11], []),
   });
 };
-export const init = ({ IDL }) => { return [IDL.Opt(IDL.Text), IDL.Text]; };
+export const init = ({ IDL }) => { return [IDL.Text, IDL.Text, IDL.Text]; };
