@@ -1,5 +1,8 @@
+import bindingHttp from "@node-wot/binding-http";
+
 export type OmniaGatewayOptions = {
-  wotServientPort: number;
+  wotHttpServerConfig: bindingHttp.HttpConfig;
+
   matterControllerChipWsPort: number;
   matterControllerChipToolPath: string;
   disableMatterController?: boolean;

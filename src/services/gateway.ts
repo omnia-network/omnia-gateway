@@ -21,6 +21,7 @@ import type {
   DbDevice,
   OmniaGatewayOptions,
 } from "../models";
+import { getLogger } from "./logger.js";
 
 const TD_DIRECTORY_URI = "";
 
@@ -34,7 +35,7 @@ export class OmniaGateway {
   //// WoT
   private _wotServient: Servient;
   private _wotNamespace: typeof WoT;
-  readonly wotServientPort: number;
+  readonly wotHttpServerConfig: bindingHttp.HttpConfig;
 
   //// local database
   private _localDb: Database;
@@ -50,10 +51,10 @@ export class OmniaGateway {
   //// Configuration
   private _standaloneMode = false;
 
-  // TODO: add a logger instance for the OmniaGateway
+  private logger = getLogger("OmniaGateway");
 
   constructor(options: OmniaGatewayOptions) {
-    // must come before other services are initialized
+    // must be initialized before other services start
     this._localDb = new Database();
 
     this._useProxy = options.useProxy ?? false;
@@ -65,7 +66,7 @@ export class OmniaGateway {
       );
     }
 
-    this.wotServientPort = options.wotServientPort;
+    this.wotHttpServerConfig = options.wotHttpServerConfig;
     this._wotServient = new Servient();
 
     this._disableMatterController = options.disableMatterController ?? false;
@@ -77,17 +78,14 @@ export class OmniaGateway {
     }
 
     this._standaloneMode = options.standaloneMode ?? false;
-    // initialize the IC identity only if we are not in standalone mode
+
+    // initialize the IC related properties only if we are not in standalone mode
     if (!this._standaloneMode) {
       this._icIdentity = new IcIdentity(options.icIndentitySeedPhrase);
     }
   }
 
   async start(): Promise<void> {
-    if (!this.wotServientPort) {
-      throw new Error("WOT_SERVIENT_PORT not set");
-    }
-
     // we must ensure that the data folder exists before starting sub services
     // because they need it to store their data
     this.initializeDataFolder();
@@ -123,12 +121,11 @@ export class OmniaGateway {
       await this._matterController.start();
     }
 
+    // create the WoT server
+    const httpServer = new bindingHttp.HttpServer(this.wotHttpServerConfig);
+
     this._wotServient.addServer(
-      new bindingHttp.HttpServer({
-        // we can listen only to localhost because NGINX will proxy the requests
-        address: "127.0.0.1",
-        port: this.wotServientPort,
-      }),
+      httpServer,
     );
     this._wotNamespace = await this._wotServient.start();
 
@@ -143,7 +140,7 @@ export class OmniaGateway {
       if ("Ok" in registeredDevices) {
         registeredDevicesIds.push(...registeredDevices.Ok);
       } else if ("Err" in registeredDevices) {
-        console.error(
+        this.logger.error(
           `Couldn't get registered devices: ${registeredDevices.Err}`,
         );
         // TODO: handle the error better, maybe retry or exit
@@ -186,8 +183,8 @@ export class OmniaGateway {
         this.exposeDevice(localDeviceData);
 
       } catch (err) {
-        console.error(err);
-        console.log(
+        this.logger.error(`Error while exposing device ${deviceId}: ${err}`);
+        this.logger.warn(
           `Device ${deviceId} is not connected anymore, removing it from the database`,
         );
         await this._localDb.removeCommissionedDevice(deviceId);
@@ -202,7 +199,7 @@ export class OmniaGateway {
       this.startPollingForUpdates();
     }
 
-    console.log("Omnia Gateway started");
+    this.logger.info("Omnia Gateway started");
   }
 
   /**
