@@ -165,7 +165,9 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       if (!verifyResult.verified) {
         this.logger.warn("Access key not verified");
         res.statusCode = UNAUTHORIZED_STATUS_CODE;
-        res.end(`Access key not verified, reason: ${verifyResult.rejectReason}`);
+        res.end(
+          `Access key not verified, reason: ${verifyResult.rejectReason}`,
+        );
         return;
       }
 
@@ -199,7 +201,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
 
   private async verifyAccessKey(
     accessKey: IncomingAccessKey,
-  ): Promise<{verified: boolean; rejectReason?: string}> {
+  ): Promise<{ verified: boolean; rejectReason?: string }> {
     const response = await this._icAgent.actor.reportSignedRequests([
       {
         unique_access_key: {
