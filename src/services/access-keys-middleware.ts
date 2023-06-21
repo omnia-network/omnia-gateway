@@ -1,7 +1,6 @@
 import EventEmitter from "events";
 import { Principal } from "@dfinity/principal";
 import bindingHttp from "@node-wot/binding-http";
-import { Logger } from "winston";
 import { IcAgent } from "../ic-agent/agent.js";
 import { IncomingAccessKey } from "../models/local-db";
 import { Database } from "./local-db.js";
@@ -13,9 +12,10 @@ type MiddlewareRequestHandlerReturn =
   ReturnType<bindingHttp.MiddlewareRequestHandler>;
 
 /**
- * The base implementation for the HTTP middleware
+ * The base implementation for the HTTP middleware.
+ * **NOTE**: this is just an interface that must be used as a guideline for the actual middleware implementation.
  */
-export declare class BaseAccessKeysMiddleware {
+export interface BaseAccessKeysMiddleware {
   /**
    * Initializes the middleware, for example by loading the access keys from the local database.
    * This method should be called once, when the server starts.
@@ -35,11 +35,6 @@ export declare class BaseAccessKeysMiddleware {
    * This method should be called once, when the server stops.
    */
   stop?(): Promise<void>;
-
-  /**
-   * The logger to use for logging. If not provided, the middleware will not log anything.
-   */
-  protected logger?: Logger;
 }
 
 const MISSING_OR_INVALID_HEADER_STATUS_CODE = 400;
@@ -53,17 +48,16 @@ type IcAccessKeysMiddlewareParams = {
 /**
  * Manages the access keys by verifying the keys against the Omnia Backend, using the IC Agent.
  */
-export class IcAccessKeysMiddleware extends BaseAccessKeysMiddleware {
+export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
   private _icAgent: IcAgent;
   private _localDb: Database;
 
   private _checkEmitter: EventEmitter;
   private _checkInterval: NodeJS.Timeout | undefined;
 
-  protected logger = getLogger("IcAccessKeysMiddleware");
+  private logger = getLogger("IcAccessKeysMiddleware");
 
   constructor(params: IcAccessKeysMiddlewareParams) {
-    super();
     this._icAgent = params.icAgent;
     this._localDb = params.localDb;
     this._checkEmitter = new EventEmitter();
