@@ -5,13 +5,14 @@ import {
   DeviceAffordances,
   _SERVICE,
 } from "../canisters/omnia_backend/omnia_backend.did";
+import { getLogger } from "../services/logger.js";
 import { httpNonceChallenge } from "../utils/nonce-challenge.js";
 
 export class IcAgent {
   actor: ActorSubclass<_SERVICE>;
   private _fetch: typeof fetch;
 
-  // TODO: add a logger instance for the IcAgent
+  private logger = getLogger("IcAgent");
 
   constructor(actor: ActorSubclass<_SERVICE>, customFetch: typeof fetch) {
     this.actor = actor;
@@ -22,7 +23,12 @@ export class IcAgent {
     const initGatewayRes = await callMethodWithChallenge((nonce) => {
       return this.actor.initGateway(nonce);
     }, this._fetch);
-    console.log("Gateway principal ID: ", initGatewayRes);
+
+    if ("Ok" in initGatewayRes) {
+      this.logger.info("Gateway initialized");
+    } else {
+      throw new Error(initGatewayRes.Err);
+    }
   }
 
   async pollForUpdates(): Promise<
@@ -41,7 +47,7 @@ export class IcAgent {
         const payload = updates[0].info.payload;
         const managerPrincipalId = updates[0].virtual_persona_principal_id;
 
-        console.log(`Manager: ${managerPrincipalId} pairing new device`);
+        this.logger.debug(`Manager: ${managerPrincipalId} pairing new device`);
         const pairingInfo = {
           nodeId: nodeId,
           payload: payload,
@@ -49,7 +55,7 @@ export class IcAgent {
         return pairingInfo;
       }
     } catch (error) {
-      console.error("Error fetching updates:", error);
+      this.logger.error(`Error fetching updates: ${error}`);
     }
   }
 
@@ -68,7 +74,7 @@ export class IcAgent {
       }
       throw new Error(deviceRegistrationResult.Err);
     } catch (error) {
-      console.error("Error registering device:", error);
+      this.logger.error(`Error registering device: ${error}`);
     }
   }
 }
