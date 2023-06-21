@@ -21,6 +21,7 @@ import type {
   DbDevice,
   OmniaGatewayOptions,
 } from "../models";
+import { BaseAccessKeysMiddleware, IcAccessKeysMiddleware } from "./access-keys-middleware.js";
 import { getLogger } from "./logger.js";
 
 const TD_DIRECTORY_URI = "";
@@ -31,6 +32,9 @@ export class OmniaGateway {
   //// IC Agent
   private _icAgent: IcAgent;
   private _icIdentity: IcIdentity;
+
+  //// Access Keys
+  private _accessKeysMiddleware: BaseAccessKeysMiddleware; 
 
   //// WoT
   private _wotServient: Servient;
@@ -82,6 +86,10 @@ export class OmniaGateway {
     // initialize the IC related properties only if we are not in standalone mode
     if (!this._standaloneMode) {
       this._icIdentity = new IcIdentity(options.icIndentitySeedPhrase);
+      this._accessKeysMiddleware = new IcAccessKeysMiddleware({
+        icAgent: this._icAgent,
+        localDb: this._localDb,
+      });
     }
   }
 
@@ -119,6 +127,12 @@ export class OmniaGateway {
 
     if (!this._disableMatterController) {
       await this._matterController.start();
+    }
+
+    // initialize the WoT middleware only if there is an access key middleware
+    if (this._accessKeysMiddleware) {
+      await this._accessKeysMiddleware.init();
+      this.wotHttpServerConfig.middleware = new bindingHttp.HttpMiddleware(this._accessKeysMiddleware.handler);
     }
 
     // create the WoT server
@@ -306,6 +320,10 @@ export class OmniaGateway {
 
     if (this._useProxy) {
       await this._proxyClient.disconnect();
+    }
+
+    if (this._accessKeysMiddleware && this._accessKeysMiddleware.stop) {
+      this._accessKeysMiddleware.stop();
     }
   }
 }

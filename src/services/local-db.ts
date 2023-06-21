@@ -1,6 +1,6 @@
 import { join } from "path";
 import { JSONFile, Low } from "lowdb";
-import { DbDevice, LocalDb, ProxyConfig } from "../models";
+import { DbDevice, LocalDb, ProxyConfig, DbAccessKeys } from "../models";
 
 const DB_PATH = `${process.cwd()}/data`;
 
@@ -54,5 +54,27 @@ export class Database {
 
   async getProxyConfig(): Promise<ProxyConfig | undefined> {
     return this.db.data!.proxyConfig;
+  }
+
+  async getAccessKeys<T extends keyof DbAccessKeys>(dbKey: T): Promise<DbAccessKeys[T]> {
+    if (!this.db.data!.accessKeys) {
+      this.db.data!.accessKeys = {
+        allowed: {},
+        incoming: {},
+      };
+      await this.db.write();
+    }
+    return this.db.data!.accessKeys![dbKey];
+  }
+
+  async storeAccessKeys<T extends keyof DbAccessKeys>(dbKey: T, accessKeys: DbAccessKeys[T]) {
+    if (!this.db.data!.accessKeys) {
+      this.db.data!.accessKeys = {
+        allowed: {},
+        incoming: {},
+      };
+    }
+    this.db.data!.accessKeys[dbKey] = accessKeys;
+    await this.db.write();
   }
 }
