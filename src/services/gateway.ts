@@ -144,7 +144,7 @@ export class OmniaGateway {
     if (this._accessKeysMiddleware) {
       await this._accessKeysMiddleware.init();
       this.wotHttpServerConfig.middleware = new bindingHttp.HttpMiddleware(
-        this._accessKeysMiddleware.handler,
+        this._accessKeysMiddleware.handler.bind(this._accessKeysMiddleware),
       );
     }
 
