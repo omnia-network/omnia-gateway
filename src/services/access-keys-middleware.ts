@@ -200,17 +200,27 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
   private async verifyAccessKey(
     accessKey: IncomingAccessKey,
   ): Promise<boolean> {
-    const response = await this._icAgent.actor.reportSignedRequest({
-      unique_access_key: {
-        key: accessKey.key,
-        nonce: accessKey.nonce,
+    const response = await this._icAgent.actor.reportSignedRequests([
+      {
+        unique_access_key: {
+          key: accessKey.key,
+          nonce: accessKey.nonce,
+        },
+        signature_hex: accessKey.signature,
+        requester_canister_id: Principal.from(accessKey.metadata!.canisterId),
       },
-      signature_hex: accessKey.signature,
-      requester_canister_id: Principal.from(accessKey.metadata!.canisterId),
-    });
+    ]);
 
     if ("Ok" in response) {
-      return true;
+      // if the key is valid, no rejected keys will be returned
+      if (response.Ok.length === 0) {
+        return true;
+      } else {
+        // just log the rejection error
+        this.logger.error(
+          `Access key ${accessKey.key} rejected reason: ${response.Ok[0].reason}`,
+        );
+      }
     }
 
     return false;
@@ -223,26 +233,51 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       incomingAccessKeys = await this.getAllIncomingAccessKeys();
     }
 
+    this.logger.debug(`Verifying ${incomingAccessKeys.length} access keys`);
+
     const allowed = await this._localDb.getAccessKeys("allowed");
     const incoming = await this._localDb.getAccessKeys("incoming");
 
-    for (const accessKey of Object.values(incomingAccessKeys)) {
-      const verified = await this.verifyAccessKey(accessKey);
+    const reportResult = await this._icAgent.actor.reportSignedRequests(
+      incomingAccessKeys.map((ak) => ({
+        unique_access_key: {
+          key: ak.key,
+          nonce: ak.nonce,
+        },
+        signature_hex: ak.signature,
+        requester_canister_id: Principal.from(ak.metadata!.canisterId),
+      })),
+    );
 
-      if (verified) {
-        allowed[accessKey.key] = {
+    if ("Ok" in reportResult) {
+      const rejectedRequests = reportResult.Ok;
+
+      // remove the rejected requests from the incoming list
+      for (const rejectedRequest of rejectedRequests) {
+        if (incoming[rejectedRequest.key]) {
+          delete incoming[rejectedRequest.key];
+        }
+        if (allowed[rejectedRequest.key]) {
+          delete allowed[rejectedRequest.key];
+        }
+      }
+
+      // only add the verified requests to the allowed list
+      const verifiedKeys = incomingAccessKeys.filter(
+        (ak) => rejectedRequests.findIndex((rr) => rr.key === ak.key) === -1,
+      );
+      for (const verifiedKey of verifiedKeys) {
+        allowed[verifiedKey.key] = {
           lastVerifiedAt: new Date().getTime(),
         };
       }
 
-      // in any case, we remove the access key from the incoming list
-      // the access key is identified by the key and the nonce
-      incoming[accessKey.key] = incoming[accessKey.key].filter(
-        (ak) => ak.nonce !== accessKey.nonce,
+      this.logger.debug(
+        `Verified ${verifiedKeys.length} access keys, rejected ${rejectedRequests.length} access keys`,
       );
-      if (incoming[accessKey.key].length === 0) {
-        delete incoming[accessKey.key];
-      }
+    } else {
+      this.logger.error("Error while verifying access keys", reportResult);
+      return;
     }
 
     await this._localDb.storeAccessKeys("allowed", allowed);
