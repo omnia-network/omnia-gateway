@@ -92,10 +92,6 @@ export class OmniaGateway {
     // initialize the IC related properties only if we are not in standalone mode
     if (!this._standaloneMode) {
       this._icIdentity = new IcIdentity(options.icIndentitySeedPhrase);
-      this._accessKeysMiddleware = new IcAccessKeysMiddleware({
-        icAgent: this._icAgent,
-        localDb: this._localDb,
-      });
     }
   }
 
@@ -134,6 +130,11 @@ export class OmniaGateway {
       });
       this._icAgent = new IcAgent(omnia_backend, customFetch);
       await this._icAgent.start();
+
+      this._accessKeysMiddleware = new IcAccessKeysMiddleware({
+        icAgent: this._icAgent,
+        localDb: this._localDb,
+      });
     }
 
     if (!this._disableMatterController) {

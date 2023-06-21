@@ -86,7 +86,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
 
   async handler(...[req, res, next]: MiddlewareRequestHandlerArgs) {
     // check if all headers are present
-    const requestAccessKey = req.headers["X-Omnia-Access-Key"];
+    const requestAccessKey = req.headers["x-omnia-access-key"];
     if (!requestAccessKey || typeof requestAccessKey !== "string") {
       this.logger.warn("X-Omnia-Access-Key header is missing or invalid");
       res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
@@ -95,7 +95,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     }
 
     const rawNonce = parseInt(
-      req.headers["X-Omnia-Access-Key-Nonce"] as string,
+      req.headers["x-omnia-access-key-nonce"] as string,
     );
     if (isNaN(rawNonce)) {
       this.logger.warn("X-Omnia-Access-Key-Nonce is missing or invalid");
@@ -106,7 +106,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     const requestAccessKeyNonce = BigInt(rawNonce);
 
     const requestAccessKeySignature =
-      req.headers["X-Omnia-Access-Key-Signature"];
+      req.headers["x-omnia-access-key-signature"];
     if (
       !requestAccessKeySignature ||
       typeof requestAccessKeySignature !== "string"
@@ -117,7 +117,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       return;
     }
 
-    const requestCanisterId = req.headers["X-IC-Canister-Id"];
+    const requestCanisterId = req.headers["x-ic-canister-id"];
     if (!requestCanisterId || typeof requestCanisterId !== "string") {
       this.logger.warn("X-IC-Canister-Id is missing or invalid");
       res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
@@ -131,7 +131,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       signature: requestAccessKeySignature,
       receivedAt: new Date().getTime(),
       metadata: {
-        canisterId: req.headers["X-Omnia-Access-Key-Canister-Id"] as string,
+        canisterId: requestCanisterId,
       },
     };
 
@@ -161,11 +161,11 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       incoming[requestAccessKey].push(accessKey);
       await this._localDb.storeAccessKeys("incoming", incoming);
     } else {
-      const verified = await this.verifyAccessKey(accessKey);
-      if (!verified) {
+      const verifyResult = await this.verifyAccessKey(accessKey);
+      if (!verifyResult.verified) {
         this.logger.warn("Access key not verified");
         res.statusCode = UNAUTHORIZED_STATUS_CODE;
-        res.end("Access key not verified");
+        res.end(`Access key not verified, reason: ${verifyResult.rejectReason}`);
         return;
       }
 
@@ -199,7 +199,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
 
   private async verifyAccessKey(
     accessKey: IncomingAccessKey,
-  ): Promise<boolean> {
+  ): Promise<{verified: boolean; rejectReason?: string}> {
     const response = await this._icAgent.actor.reportSignedRequests([
       {
         unique_access_key: {
@@ -214,16 +214,26 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     if ("Ok" in response) {
       // if the key is valid, no rejected keys will be returned
       if (response.Ok.length === 0) {
-        return true;
+        return {
+          verified: true,
+        };
       } else {
         // just log the rejection error
+        const rejectReason = JSON.stringify(response.Ok[0].reason);
         this.logger.error(
-          `Access key ${accessKey.key} rejected reason: ${response.Ok[0].reason}`,
+          `Access key ${accessKey.key} rejected reason: ${rejectReason})}`,
         );
+        return {
+          verified: false,
+          rejectReason,
+        };
       }
     }
 
-    return false;
+    return {
+      verified: false,
+      rejectReason: "Unknown error",
+    };
   }
 
   private async verifyAccessKeys(
