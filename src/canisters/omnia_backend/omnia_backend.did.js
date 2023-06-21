@@ -95,14 +95,21 @@ export const idlFactory = ({ IDL }) => {
     'unique_access_key' : UniqueAccessKey,
     'signature_hex' : IDL.Text,
   });
-  const AccessKeyValue = IDL.Record({
-    'key' : IDL.Text,
-    'transaction_hash' : IDL.Vec(IDL.Nat8),
-    'counter' : IDL.Nat,
-    'owner' : IDL.Principal,
-    'used_nonces' : IDL.Vec(IDL.Nat),
+  const RejectedAccessKeyReason = IDL.Variant({
+    'InvalidNonce' : IDL.Null,
+    'InvalidAccessKey' : IDL.Null,
+    'InvalidSignature' : IDL.Null,
+    'NonceAlreadyUsed' : IDL.Null,
+    'SignatureVerificationError' : IDL.Text,
   });
-  const Result_10 = IDL.Variant({ 'Ok' : AccessKeyValue, 'Err' : IDL.Text });
+  const RejectedAccessKey = IDL.Record({
+    'key' : IDL.Text,
+    'reason' : RejectedAccessKeyReason,
+  });
+  const Result_10 = IDL.Variant({
+    'Ok' : IDL.Vec(RejectedAccessKey),
+    'Err' : IDL.Text,
+  });
   const EnvironmentInfo = IDL.Record({ 'env_uid' : IDL.Text });
   const Result_11 = IDL.Variant({ 'Ok' : EnvironmentInfo, 'Err' : IDL.Text });
   return IDL.Service({
@@ -127,7 +134,11 @@ export const idlFactory = ({ IDL }) => {
         [Result_9],
         [],
       ),
-    'reportSignedRequest' : IDL.Func([SignedRequest], [Result_10], []),
+    'reportSignedRequests' : IDL.Func(
+        [IDL.Vec(SignedRequest)],
+        [Result_10],
+        [],
+      ),
     'resetEnvironment' : IDL.Func([IDL.Text], [Result_11], []),
     'setEnvironment' : IDL.Func([IDL.Text], [Result_11], []),
   });

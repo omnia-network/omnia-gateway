@@ -3,13 +3,6 @@
 import type { Principal } from '@dfinity/principal';
 import type { ActorMethod } from '@dfinity/agent';
 
-export interface AccessKeyValue {
-  'key' : string,
-  'transaction_hash' : Uint8Array | number[],
-  'counter' : bigint,
-  'owner' : Principal,
-  'used_nonces' : Array<bigint>,
-}
 export interface DeviceAffordances {
   'properties' : Array<string>,
   'actions' : Array<string>,
@@ -58,11 +51,20 @@ export interface RegisteredGatewayValue {
   'gateway_url' : string,
   'proxied_gateway_uid' : [] | [string],
 }
+export interface RejectedAccessKey {
+  'key' : string,
+  'reason' : RejectedAccessKeyReason,
+}
+export type RejectedAccessKeyReason = { 'InvalidNonce' : null } |
+  { 'InvalidAccessKey' : null } |
+  { 'InvalidSignature' : null } |
+  { 'NonceAlreadyUsed' : null } |
+  { 'SignatureVerificationError' : string };
 export type Result = { 'Ok' : EnvironmentCreationResult } |
   { 'Err' : string };
 export type Result_1 = { 'Ok' : Uint8Array | number[] } |
   { 'Err' : string };
-export type Result_10 = { 'Ok' : AccessKeyValue } |
+export type Result_10 = { 'Ok' : Array<RejectedAccessKey> } |
   { 'Err' : string };
 export type Result_11 = { 'Ok' : EnvironmentInfo } |
   { 'Err' : string };
@@ -121,7 +123,7 @@ export interface _SERVICE {
   'pairNewDevice' : ActorMethod<[string, string, string], Result_7>,
   'registerDevice' : ActorMethod<[string, DeviceAffordances], Result_8>,
   'registerGateway' : ActorMethod<[string, GatewayRegistrationInput], Result_9>,
-  'reportSignedRequest' : ActorMethod<[SignedRequest], Result_10>,
+  'reportSignedRequests' : ActorMethod<[Array<SignedRequest>], Result_10>,
   'resetEnvironment' : ActorMethod<[string], Result_11>,
   'setEnvironment' : ActorMethod<[string], Result_11>,
 }
