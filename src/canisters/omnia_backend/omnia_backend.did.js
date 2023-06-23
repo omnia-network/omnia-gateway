@@ -97,6 +97,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const RejectedAccessKeyReason = IDL.Variant({
     'InvalidNonce' : IDL.Null,
+    'RequestsLimitReached' : IDL.Null,
     'InvalidAccessKey' : IDL.Null,
     'InvalidSignature' : IDL.Null,
     'NonceAlreadyUsed' : IDL.Null,

@@ -56,6 +56,7 @@ export interface RejectedAccessKey {
   'reason' : RejectedAccessKeyReason,
 }
 export type RejectedAccessKeyReason = { 'InvalidNonce' : null } |
+  { 'RequestsLimitReached' : null } |
   { 'InvalidAccessKey' : null } |
   { 'InvalidSignature' : null } |
   { 'NonceAlreadyUsed' : null } |
