@@ -1,17 +1,18 @@
-{
-  "root": true,
-  "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "import"],
-  "extends": ["prettier"],
-  "overrides": [
+module.exports = {
+  root: true,
+  parser: "@typescript-eslint/parser",
+  plugins: ["@typescript-eslint", "import", "workspaces"],
+  extends: ["prettier"],
+  overrides: [
     {
-      "files": ["src/**/*.ts"],
-      "extends": [
+      files: ["src/**/*.ts"],
+      extends: [
         "plugin:@typescript-eslint/recommended-requiring-type-checking",
         "prettier",
-        "plugin:import/recommended"
+        "plugin:import/recommended",
+        "plugin:workspaces/recommended",
       ],
-      "rules": {
+      rules: {
         "@typescript-eslint/no-floating-promises": "off",
         "@typescript-eslint/no-unsafe-return": "off",
         "@typescript-eslint/no-unsafe-assignment": "off",
@@ -28,37 +29,37 @@
         "import/order": [
           "error",
           {
-            "groups": [
+            groups: [
               "builtin",
               "external",
               "internal",
               "parent",
               "sibling",
               "object",
-              "type"
+              "type",
             ],
-            "pathGroupsExcludedImportTypes": ["builtin", "type"],
-            "alphabetize": {
-              "order": "asc"
+            pathGroupsExcludedImportTypes: ["builtin", "type"],
+            alphabetize: {
+              order: "asc",
             },
-            "newlines-between": "never"
-          }
+            "newlines-between": "never",
+          },
         ],
         "sort-imports": [
           "error",
           {
-            "allowSeparatedGroups": true,
-            "ignoreDeclarationSort": true
-          }
-        ]
+            allowSeparatedGroups: true,
+            ignoreDeclarationSort: true,
+          },
+        ],
       },
-      "parserOptions": {
-        "ecmaVersion": "latest",
-        "lib": ["esnext"],
-        "tsconfigRootDir": ".",
-        "project": ["./tsconfig.json"],
-        "projectFolderIgnoreList": ["./*.cjs"]
-      }
-    }
-  ]
-}
+      parserOptions: {
+        ecmaVersion: "latest",
+        lib: ["esnext"],
+        tsconfigRootDir: __dirname,
+        project: ["./tsconfig.eslint.json"],
+        projectFolderIgnoreList: ["./*.cjs"],
+      },
+    },
+  ],
+};

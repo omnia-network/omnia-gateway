@@ -20,6 +20,11 @@
     "strictPropertyInitialization": false,
     "useUnknownInCatchVariables": false
   },
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/ic" },
+    { "path": "./packages/proxy-client" }
+  ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build"]
 }

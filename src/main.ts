@@ -1,5 +1,5 @@
-import { ENV_VARIABLES } from "./constants/environment.js";
-import { OmniaGateway } from "./services/gateway.js";
+import { ENV_VARIABLES } from "@omnia-gateway/core";
+import { OmniaGateway } from "./gateway.js";
 
 const gateway = new OmniaGateway({
   standaloneMode: ENV_VARIABLES.STANDALONE_MODE,

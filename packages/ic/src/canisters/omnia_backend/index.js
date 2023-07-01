@@ -1,6 +1,6 @@
 import { Actor, HttpAgent, fromHex } from "@dfinity/agent";
 import fetch from "node-fetch";
-import { ENV_VARIABLES } from "../../constants/environment.js";
+import { ENV_VARIABLES } from "@omnia-gateway/core";
 
 // Imports and re-exports candid interface
 import { idlFactory } from "./omnia_backend.did.js";

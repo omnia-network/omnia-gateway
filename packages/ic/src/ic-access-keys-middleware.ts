@@ -1,48 +1,49 @@
 import EventEmitter from "events";
 import { Principal } from "@dfinity/principal";
-import bindingHttp from "@node-wot/binding-http";
-import { IcAgent } from "../ic-agent/agent.js";
-import { IncomingAccessKey } from "../models/local-db";
-import { Database } from "./local-db.js";
-import { getLogger } from "./logger.js";
-
-type MiddlewareRequestHandlerArgs =
-  Parameters<bindingHttp.MiddlewareRequestHandler>;
-type MiddlewareRequestHandlerReturn =
-  ReturnType<bindingHttp.MiddlewareRequestHandler>;
-
-/**
- * The base implementation for the HTTP middleware.
- * **NOTE**: this is just an interface that must be used as a guideline for the actual middleware implementation.
- */
-export interface BaseAccessKeysMiddleware {
-  /**
-   * Initializes the middleware, for example by loading the access keys from the local database.
-   * This method should be called once, when the server starts.
-   * @returns a promise that resolves when the initialization is complete.
-   */
-  init(): Promise<void>;
-
-  /**
-   * Runs the logic to verify the access keys and eventually return the appropriate HTTP error.
-   */
-  handler(
-    ...args: MiddlewareRequestHandlerArgs
-  ): MiddlewareRequestHandlerReturn;
-
-  /**
-   * (OPTIONAL) Stops the middleware, for example by stopping the periodic checks.
-   * This method should be called once, when the server stops.
-   */
-  stop?(): Promise<void>;
-}
+import { Store, getLogger } from "@omnia-gateway/core";
+import { IcAgent } from "./agent.js";
+import type {
+  BaseAccessKeysMiddleware,
+  MiddlewareRequestHandlerArgs,
+  Timestamp,
+} from "@omnia-gateway/core";
 
 const MISSING_OR_INVALID_HEADER_STATUS_CODE = 400;
 const UNAUTHORIZED_STATUS_CODE = 401;
 
 type IcAccessKeysMiddlewareParams = {
   icAgent: IcAgent;
-  localDb: Database;
+};
+
+type IncomingAccessKey = {
+  key: string;
+  nonce: bigint;
+  signature: string;
+  receivedAt?: Timestamp;
+  metadata?: {
+    [key: string]:
+      | string
+      | number
+      | boolean
+      | bigint
+      | Record<string, unknown>
+      | null;
+  };
+};
+
+type VerifiedAccessKey = {
+  lastVerifiedAt: Timestamp;
+};
+
+type AccessKeyIndex = IncomingAccessKey["key"];
+
+type DbAccessKeys = {
+  allowed: {
+    [key: AccessKeyIndex]: VerifiedAccessKey;
+  };
+  incoming: {
+    [key: AccessKeyIndex]: IncomingAccessKey[];
+  };
 };
 
 /**
@@ -50,7 +51,7 @@ type IcAccessKeysMiddlewareParams = {
  */
 export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
   private _icAgent: IcAgent;
-  private _localDb: Database;
+  private _localDb: Store<DbAccessKeys>;
 
   private _checkEmitter: EventEmitter;
   private _checkInterval: NodeJS.Timeout | undefined;
@@ -59,7 +60,6 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
 
   constructor(params: IcAccessKeysMiddlewareParams) {
     this._icAgent = params.icAgent;
-    this._localDb = params.localDb;
     this._checkEmitter = new EventEmitter();
   }
 
@@ -68,6 +68,8 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
    */
   async init() {
     this.logger.info("Initializing the IcAccessKeysMiddleware...");
+
+    this._localDb = await Store.create<DbAccessKeys>("accessKeys");
 
     this._checkEmitter.on("check", this.verifyAccessKeys.bind(this));
 
@@ -136,9 +138,9 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     };
 
     // check if the access key has already been allowed
-    const allowed = await this._localDb.getAccessKeys("allowed");
+    const allowed = this._localDb.data.allowed;
     if (allowed[requestAccessKey]) {
-      const incoming = await this._localDb.getAccessKeys("incoming");
+      const incoming = this._localDb.data.incoming;
 
       // a check to avoid simple replay attacks
       if (
@@ -159,7 +161,8 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       }
 
       incoming[requestAccessKey].push(accessKey);
-      await this._localDb.storeAccessKeys("incoming", incoming);
+      this._localDb.data.incoming = incoming;
+      await this._localDb.save();
     } else {
       const verifyResult = await this.verifyAccessKey(accessKey);
       if (!verifyResult.verified) {
@@ -175,7 +178,8 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       allowed[requestAccessKey] = {
         lastVerifiedAt: new Date().getTime(),
       };
-      await this._localDb.storeAccessKeys("allowed", allowed);
+      this._localDb.data.allowed = allowed;
+      await this._localDb.save();
     }
 
     next();
@@ -189,7 +193,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
   }
 
   private async getAllIncomingAccessKeys(): Promise<IncomingAccessKey[]> {
-    const existingAccessKeys = await this._localDb.getAccessKeys("incoming");
+    const existingAccessKeys = this._localDb.data.incoming;
     const accessKeys: IncomingAccessKey[] = [];
 
     for (const accessKey of Object.values(existingAccessKeys)) {
@@ -251,8 +255,8 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
 
     this.logger.debug(`Verifying ${incomingAccessKeys.length} access keys`);
 
-    const allowed = await this._localDb.getAccessKeys("allowed");
-    const incoming = await this._localDb.getAccessKeys("incoming");
+    const allowed = this._localDb.data.allowed;
+    const incoming = this._localDb.data.incoming;
 
     const reportResult = await this._icAgent.actor.reportSignedRequests(
       incomingAccessKeys.map((ak) => ({
@@ -296,7 +300,10 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       return;
     }
 
-    await this._localDb.storeAccessKeys("allowed", allowed);
-    await this._localDb.storeAccessKeys("incoming", incoming);
+    this._localDb.data = {
+      allowed,
+      incoming,
+    };
+    await this._localDb.save();
   }
 }

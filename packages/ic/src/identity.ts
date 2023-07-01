@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { Secp256k1KeyIdentity } from "@dfinity/identity-secp256k1";
+import { getLogger } from "@omnia-gateway/core";
 import * as bip39 from "bip39";
 import hdkey from "hdkey";
-import { getLogger } from "../services/logger.js";
 
 const IDENTITY_FOLDER = `${process.cwd()}/data/ic`;
 

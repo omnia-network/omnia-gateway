@@ -9,7 +9,7 @@ const logFormat = format.printf((info) => {
 /**
  * Create a logger with the given label and common format
  * @param {string} label The label to use for the logger
- * @returns {winston.Logger} The logger
+ * @returns {Logger} The logger
  */
 export const getLogger = (label: string): Logger => {
   return createLogger({

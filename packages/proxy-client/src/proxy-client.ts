@@ -1,20 +1,37 @@
 import { exec } from "child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { promisify } from "util";
+import { Store, getLogger } from "@omnia-gateway/core";
 import fetch, { Request, Response } from "node-fetch";
-import { Database } from "../services/local-db.js";
-import { getLogger } from "../services/logger.js";
-import { getWgConfig } from "../utils/wg-config.js";
-import type {
-  PeerInfoResponse,
-  ProxyConfig,
-  RegisterToVpnRequest,
-  RegisterToVpnResponse,
-} from "../models";
+import { getWgConfig } from "./wireguard.js";
 
 const promisifiedExec = promisify(exec);
 
 const WIREGUARD_FOLDER = `${process.cwd()}/data/wireguard`;
+
+export type RegisterToVpnRequest = {
+  public_key: string;
+};
+
+export type RegisterToVpnResponse = {
+  server_public_key: string;
+  assigned_ip: string;
+  assigned_id: string;
+  proxy_address: string;
+};
+
+export type PeerInfoResponse = {
+  id: string;
+  internal_ip: string;
+  public_ip: string;
+  public_key: string;
+  proxy_address: string;
+};
+
+export type ProxyConfig = {
+  proxyAddress: string;
+  assignedProxyId: string;
+};
 
 /**
  * ProxyClient requires that {@link https://www.wireguard.com/ WireGuard} is installed on the system,
@@ -39,14 +56,13 @@ export class ProxyClient {
     return this._proxyConfig;
   }
 
-  private localDb: Database;
+  private localDb: Store<ProxyConfig>;
 
   private logger = getLogger("ProxyClient");
 
-  constructor(proxyUrl: string, wgAddress: string, localDb: Database) {
+  constructor(proxyUrl: string, wgAddress: string) {
     this.proxyUrl = proxyUrl;
     this.wgAddress = wgAddress;
-    this.localDb = localDb;
   }
 
   /**
@@ -60,18 +76,16 @@ export class ProxyClient {
       mkdirSync(WIREGUARD_FOLDER);
     }
 
+    // create the local database
+    this.localDb = await Store.create<ProxyConfig>("proxyConfig");
+
     // check if WireGuard is already configured
     if (this.wgConfigExists()) {
       this.logger.info("WireGuard config found");
       await this.startWireguard();
 
       // load the proxy config from the local database
-      await this.loadConfig();
-
-      // the proxy config should be loaded at this point, because the WireGuard tunnel is already configured
-      if (!this._proxyConfig) {
-        throw new Error("Failed to load proxy config from local database");
-      }
+      this.loadConfig();
 
       this.logger.info("Getting peer info from proxy...");
       // get the peer info from the proxy, so that we can restore internal variables
@@ -245,15 +259,21 @@ export class ProxyClient {
     if (!this._proxyConfig) {
       throw new Error("Proxy config not initialized");
     }
-    await this.localDb.storeProxyConfig(this._proxyConfig);
+    this.localDb.data = this._proxyConfig;
+    await this.localDb.save();
   }
 
-  private async loadConfig(): Promise<void> {
-    this._proxyConfig = await this.localDb.getProxyConfig();
+  private loadConfig(): void {
+    // the proxy config should be loaded at this point, because the WireGuard tunnel is already configured
+    if (this.localDb.isEmpty()) {
+      throw new Error("Failed to load proxy config from local database");
+    }
+
+    this._proxyConfig = this.localDb.data;
   }
 
   /**
-   * A wrapper around the fetch function that manipulates the request to make it acceptable by the proxy server.
+   * A wrapper around the fetch function that prepares the request to make it acceptable by the proxy server.
    * @param args
    * @returns
    */

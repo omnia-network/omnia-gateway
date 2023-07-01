@@ -1,11 +1,24 @@
 import crypto from "crypto";
+import { ENV_VARIABLES } from "@omnia-gateway/core";
 import fetch from "node-fetch";
-import { ENV_VARIABLES } from "./../constants/environment.js";
 
-const rawUrl =
-  ENV_VARIABLES.DFX_NETWORK === "ic"
-    ? new URL(`https://${ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID}.raw.icp0.io/`)
-    : new URL(ENV_VARIABLES.OMNIA_BACKEND_HOST_URL);
+export const getUrl = (): URL => {
+  if (ENV_VARIABLES.DFX_NETWORK === "ic") {
+    return new URL("https://icp0.io");
+  }
+
+  return new URL(ENV_VARIABLES.OMNIA_BACKEND_HOST_URL);
+};
+
+const getRawUrl = (): URL => {
+  if (ENV_VARIABLES.DFX_NETWORK === "ic") {
+    return new URL(
+      `https://${ENV_VARIABLES.OMNIA_BACKEND_CANISTER_ID}.raw.icp0.io/`,
+    );
+  }
+
+  return new URL(ENV_VARIABLES.OMNIA_BACKEND_HOST_URL);
+};
 
 const getNonce = (): string => {
   return crypto.randomBytes(16).toString("hex");
@@ -14,7 +27,7 @@ const getNonce = (): string => {
 export const httpNonceChallenge = async (customFetch: typeof fetch) => {
   const nonce = getNonce();
 
-  const ipChallengeUrl = new URL("/ip-challenge", rawUrl);
+  const ipChallengeUrl = new URL("/ip-challenge", getRawUrl());
 
   if (ENV_VARIABLES.DFX_NETWORK !== "ic") {
     ipChallengeUrl.searchParams.append(

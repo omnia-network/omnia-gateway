@@ -1,0 +1,15 @@
+{
+  "name": "@omnia-gateway/core",
+  "version": "0.0.1",
+  "description": "Core functionalities of the Gateway",
+  "main": "lib/core.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint . --ext .ts --ext .mts",
+    "test": "jest",
+    "prettier": "prettier --config ../../.prettierrc --write ."
+  },
+  "author": "",
+  "license": "MIT"
+}

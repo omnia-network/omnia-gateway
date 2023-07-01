@@ -1,6 +1,7 @@
 import { ChildProcess, spawn } from "child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
+import { ENV_VARIABLES, getLogger } from "@omnia-gateway/core";
 import {
   BasicInformationCluster,
   DescriptorCluster,
@@ -16,8 +17,6 @@ import {
   DbMatterClusters,
   DbMatterDeviceInfo,
 } from "../models";
-import { getLogger } from "../services/logger.js";
-import { ENV_VARIABLES } from "./../constants/environment.js";
 import { parseCHIPMessage, parseWebSocketMessage } from "./parser.js";
 
 const CHIP_TOOL_TMP_PATH = "/tmp";
