@@ -1,4 +1,3 @@
-import bindingHttp from "@node-wot/binding-http";
 import { BaseGateway } from "@omnia-gateway/core";
 import { IcAccessKeysMiddleware, IcAgent } from "@omnia-gateway/ic";
 import { ProxyClient } from "@omnia-gateway/proxy-client";
@@ -124,9 +123,8 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
     // initialize the WoT middleware only if there is an access key middleware
     if (this._accessKeysMiddleware) {
       await this._accessKeysMiddleware.init();
-      this.wotHttpServerConfig.middleware = new bindingHttp.HttpMiddleware(
-        this._accessKeysMiddleware.handler.bind(this._accessKeysMiddleware),
-      );
+      this.wotHttpServerConfig.middleware =
+        this._accessKeysMiddleware.handler.bind(this._accessKeysMiddleware);
     }
 
     // start the base gateway
