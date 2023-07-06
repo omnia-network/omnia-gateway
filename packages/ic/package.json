@@ -8,7 +8,8 @@
     "build": "tsc -b",
     "lint": "eslint . --ext .ts --ext .mts",
     "test": "jest",
-    "prettier": "prettier --config ../../.prettierrc --write ."
+    "prettier": "prettier --config ../../.prettierrc --write .",
+    "generate:types": "cd scripts && ./generate-omnia-backend-types.sh"
   },
   "author": "",
   "license": "MIT",
