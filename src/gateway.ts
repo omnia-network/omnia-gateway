@@ -1,5 +1,5 @@
 import bindingHttp from "@node-wot/binding-http";
-import { BaseGateway, ENV_VARIABLES } from "@omnia-gateway/core";
+import { BaseGateway } from "@omnia-gateway/core";
 import { IcAccessKeysMiddleware, IcAgent } from "@omnia-gateway/ic";
 import { ProxyClient } from "@omnia-gateway/proxy-client";
 import { NodeId } from "@project-chip/matter.js/dist/cjs/common/NodeId.js";
@@ -18,9 +18,13 @@ import type { IcUpdate } from "@omnia-gateway/ic";
 export type OmniaGatewayOptions = BaseGatewayOptions & {
   matterControllerChipWsPort: number;
   matterControllerChipToolPath: string;
-  disableMatterController?: boolean;
+  enableMatterController?: boolean;
+  wifiSsid?: string;
+  wifiPassword?: string;
 
-  useProxy?: boolean;
+  enableProxy?: boolean;
+  proxyUrl?: string;
+  proxyWgAddress?: string;
 
   icIndentitySeedPhrase?: string;
 
@@ -40,10 +44,10 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
 
   //// Matter Controller
   private _matterController: MatterController;
-  private _disableMatterController = false;
+  private _enableMatterController = false;
 
   //// Proxy
-  private _useProxy = false;
+  private _enableProxy = false;
   private _proxyClient: ProxyClient;
 
   readonly exposeSimpleWoTDevice: boolean;
@@ -57,22 +61,37 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
     let customFetch = fetch;
 
     // proxy must be initialized before other services start
-    this._useProxy = options.useProxy ?? false;
-    if (this._useProxy) {
+    this._enableProxy = options.enableProxy ?? false;
+    if (this._enableProxy) {
+      if (!options.proxyUrl || !options.proxyWgAddress) {
+        throw new Error(
+          "Proxy url and proxy Wireguard address must be provided when using proxy.",
+        );
+      }
+
       this._proxyClient = new ProxyClient(
-        ENV_VARIABLES.OMNIA_PROXY_URL,
-        ENV_VARIABLES.OMNIA_PROXY_WG_ADDRESS,
+        options.proxyUrl,
+        options.proxyWgAddress,
       );
 
       customFetch = this._proxyClient.proxyFetch.bind(this._proxyClient);
     }
 
-    this._disableMatterController = options.disableMatterController ?? false;
-    if (!this._disableMatterController) {
-      this._matterController = new MatterController(
-        options.matterControllerChipWsPort,
-        options.matterControllerChipToolPath,
-      );
+    this._enableMatterController = options.enableMatterController ?? false;
+    if (this._enableMatterController) {
+      if (!options.wifiSsid || !options.wifiPassword) {
+        throw new Error(
+          "Wifi SSID and password must be provided when using Matter Controller.",
+        );
+      }
+
+      this._matterController = new MatterController({
+        chipWsPort: options.matterControllerChipWsPort,
+        chipToolBinPath: options.matterControllerChipToolPath,
+
+        wifiSsid: options.wifiSsid,
+        wifiPassword: options.wifiPassword,
+      });
     }
 
     // initialize the IC related properties only if we are not in standalone mode
@@ -88,7 +107,7 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
   }
 
   async start(): Promise<void> {
-    if (this._useProxy) {
+    if (this._enableProxy) {
       await this._proxyClient.connect();
       // set the base uri for the TDs to be the proxy url
       this.wotHttpServerConfig.baseUri = this._proxyClient.proxyUrl;
@@ -98,7 +117,7 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
       await this._icAgent.start();
     }
 
-    if (!this._disableMatterController) {
+    if (this._enableMatterController) {
       await this._matterController.start();
     }
 
@@ -136,7 +155,7 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
       try {
         const localDeviceData = this.devicesStore.data[deviceId];
 
-        if (!this._disableMatterController) {
+        if (this._enableMatterController) {
           // this should throw an error if the device is not connected or paired anymore
           const deviceInfo = await this._matterController.getDeviceInfo(
             new NodeId(BigInt(localDeviceData.matterNodeId)),
@@ -163,8 +182,14 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
           }
         }
 
-        // expose the device if all checks passed
-        await this.exposeDevice(localDeviceData);
+        // expose the device if all checks passed and the matter controller is enabled
+        if (this._enableMatterController) {
+          await this.exposeDevice(localDeviceData);
+        } else {
+          this.logger.warn(
+            `Matter Controller is not enabled, not exposing device ${deviceId}`,
+          );
+        }
       } catch (err) {
         this.logger.error(`Error while exposing device ${deviceId}: ${err}`);
         this.logger.warn(
@@ -201,6 +226,14 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
       nodeId: Math.floor(Math.random() * 65525) + 1,
       payload: payload.info.payload,
     };
+
+    // if the matter controller is not enabled, we skip pairing and log a warning
+    if (!this._enableMatterController) {
+      this.logger.warn(
+        `Matter Controller is not enabled, skipping pairing with info: ${pairingInfo}`,
+      );
+      return;
+    }
 
     await this.pairDevice(pairingInfo);
 
@@ -262,8 +295,6 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
     const pairDeviceResult = await this._matterController.pairDevice(
       deviceNodeId,
       pairingInfo.payload,
-      ENV_VARIABLES.WIFI_SSID,
-      ENV_VARIABLES.WIFI_PASSWORD,
     );
 
     // TODO: get device info e return it
@@ -285,9 +316,11 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
   }
 
   async stop(): Promise<void> {
-    this._matterController.stop();
+    if (this._enableMatterController) {
+      this._matterController.stop();
+    }
 
-    if (this._useProxy) {
+    if (this._enableProxy) {
       await this._proxyClient.disconnect();
     }
 

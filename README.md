@@ -37,9 +37,9 @@ Copy the `.env.example` file to `.env` and fill in the required values.
 The following environment variables need an explanation:
 
 - `MATTER_CONTROLLER_CHIP_TOOL_PATH` is the path to the Matter Controller binary (the chip-tool mentioned in the prerequisites)
-- `DISABLE_MATTER_CONTROLLER` is a flag to disable the Matter Controller (useful for development purposes when the Matter Controller is not available)
+- `ENABLE_MATTER_CONTROLLER` is a flag to enalbe/disable the Matter Controller (useful to set it to `false` during development if the Matter Controller is not available)
 - `WIFI_SSID` and `WIFI_PASSWORD` are the credentials of the WiFi network to which the Gateway is connected to. This is used to configure Matter Devices during the commissioning process.
-- `USE_PROXY` is a flag to enable the use of the [Omnia Proxy](https://github.com/omnia-network/omnia-proxy). This is particularly useful when the Gateway is deployed on a local network and it's not reachable from the Internet. See [Omnia Proxy](https://github.com/omnia-network/omnia-proxy) for details on how to configure the other required variables.
+- `ENABLE_PROXY` is a flag to enable/disable the connection to the [Omnia Proxy](https://github.com/omnia-network/omnia-proxy). This is particularly useful when the Gateway is deployed on a local network and it's not reachable from the Internet. See [Omnia Proxy](https://github.com/omnia-network/omnia-proxy) for details on how to configure the other required variables.
 - `DFX_NETWORK`: in the current version the only supported IC replica is the local one, available when running `dfx start`. See [Omnia Backend](https://github.com/omnia-network/omnia-backend) for details.
 
 ### Running (Docker)

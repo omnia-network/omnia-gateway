@@ -1,4 +1,4 @@
-import { ENV_VARIABLES } from "@omnia-gateway/core";
+import { ENV_VARIABLES } from "./constants/environment.js";
 import { OmniaGateway } from "./gateway.js";
 
 const gateway = new OmniaGateway({
@@ -15,7 +15,12 @@ const gateway = new OmniaGateway({
     ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT,
   ),
   matterControllerChipToolPath: ENV_VARIABLES.MATTER_CONTROLLER_CHIP_TOOL_PATH,
-  useProxy: ENV_VARIABLES.USE_PROXY,
+  wifiSsid: ENV_VARIABLES.WIFI_SSID,
+  wifiPassword: ENV_VARIABLES.WIFI_PASSWORD,
+
+  enableProxy: ENV_VARIABLES.ENABLE_PROXY,
+  proxyUrl: ENV_VARIABLES.OMNIA_PROXY_URL,
+  proxyWgAddress: ENV_VARIABLES.OMNIA_PROXY_WG_ADDRESS,
 });
 
 // TODO: handle process termination

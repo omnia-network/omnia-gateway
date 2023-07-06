@@ -1,7 +1,7 @@
 import { ChildProcess, spawn } from "child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
-import { ENV_VARIABLES, getLogger } from "@omnia-gateway/core";
+import { getLogger } from "@omnia-gateway/core";
 import {
   BasicInformationCluster,
   DescriptorCluster,
@@ -22,6 +22,14 @@ import { parseCHIPMessage, parseWebSocketMessage } from "./parser.js";
 const CHIP_TOOL_TMP_PATH = "/tmp";
 const CHIP_TOOL_PERSISTENT_STORAGE_PATH = `${process.cwd()}/data/chip-tool`;
 
+type MatterControllerOptions = {
+  chipWsPort: number;
+  chipToolBinPath: string;
+
+  wifiSsid: string;
+  wifiPassword: string;
+};
+
 export class MatterController {
   //// WebSocket properties to communicate with `chip-tool`
   readonly chipWsPort: number;
@@ -35,12 +43,16 @@ export class MatterController {
 
   //// Matter Controller properties
   private matterControllerLogger = getLogger("MatterController");
-  // this flag is needed only for testing purposes, where the `chip-tool` is not available
-  private disableMatterController = ENV_VARIABLES.DISABLE_MATTER_CONTROLLER;
 
-  constructor(chipWsPort: number, chipToolBinPath: string) {
-    this.chipWsPort = chipWsPort;
-    this.chipToolBinPath = chipToolBinPath;
+  readonly wifiSsid: string;
+  readonly wifiPassword: string;
+
+  constructor(options: MatterControllerOptions) {
+    this.chipWsPort = options.chipWsPort;
+    this.chipToolBinPath = options.chipToolBinPath;
+
+    this.wifiSsid = options.wifiSsid;
+    this.wifiPassword = options.wifiPassword;
   }
 
   /**
@@ -55,10 +67,6 @@ export class MatterController {
         `Creating persistent storage folder at ${CHIP_TOOL_PERSISTENT_STORAGE_PATH}`,
       );
       mkdirSync(CHIP_TOOL_PERSISTENT_STORAGE_PATH);
-    }
-
-    if (this.disableMatterController) {
-      return Promise.resolve();
     }
 
     // before spawning the `chip-tool` process, we need to restore the persistent data
@@ -163,10 +171,6 @@ export class MatterController {
     successCallback: (event: WebSocket.MessageEvent) => T,
     errorCallback: (event: WebSocket.ErrorEvent) => Error,
   ): Promise<T> {
-    if (this.disableMatterController) {
-      return Promise.resolve({} as T);
-    }
-
     this.matterControllerLogger.debug(`sending message: ${message}`);
 
     this.chipWs.send(message);
@@ -223,25 +227,12 @@ export class MatterController {
    * @throws {Error} if the pairing failed
    * @throws {Error} if ssid or password are missing
    */
-  async pairDevice(
-    nodeId: NodeId,
-    payload: string,
-    ssid: string,
-    password: string,
-  ): Promise<CHIPParsedResult> {
-    if (this.disableMatterController) {
-      return Promise.resolve([] as CHIPParsedResult);
-    }
-
+  async pairDevice(nodeId: NodeId, payload: string): Promise<CHIPParsedResult> {
     if (!this.chipToolProcess) {
       throw new Error("Matter controller is not running");
     }
 
-    if (!ssid || !password) {
-      throw new Error("WiFi SSID or password are missing");
-    }
-
-    const messageToSend = `pairing code-wifi ${nodeId.id} ${ssid} ${password} ${payload}`;
+    const messageToSend = `pairing code-wifi ${nodeId.id} ${this.wifiSsid} ${this.wifiPassword} ${payload}`;
 
     return this.sendWsMessage(
       messageToSend,
@@ -251,10 +242,6 @@ export class MatterController {
   }
 
   async unpairDevice(nodeId: NodeId): Promise<CHIPParsedResult> {
-    if (this.disableMatterController) {
-      return Promise.resolve([] as CHIPParsedResult);
-    }
-
     if (!this.chipToolProcess) {
       throw new Error("Matter controller is not running");
     }
@@ -326,10 +313,6 @@ export class MatterController {
     nodeId: NodeId,
     endpointId: EndpointNumber,
   ): Promise<CHIPParsedResult> {
-    if (this.disableMatterController) {
-      return Promise.resolve([] as CHIPParsedResult);
-    }
-
     if (!this.chipToolProcess) {
       throw new Error("Matter controller is not running");
     }
@@ -400,10 +383,6 @@ export class MatterController {
     nodeId: NodeId,
     endpointId: EndpointNumber,
   ): Promise<CHIPParsedResult> {
-    if (this.disableMatterController) {
-      return Promise.resolve([] as CHIPParsedResult);
-    }
-
     if (!this.chipToolProcess) {
       throw new Error("Matter controller is not running");
     }
@@ -497,13 +476,6 @@ export class MatterController {
    * @throws {Error} if somthing goes wrong while calling the `basicinformation` cluster command
    */
   async getDeviceInfo(nodeId: NodeId): Promise<DbMatterDeviceInfo> {
-    if (this.disableMatterController) {
-      return {
-        vendorId: 0,
-        productId: 0,
-      };
-    }
-
     const vendorIdResult = await this.readAttribute(
       new ClusterId(BasicInformationCluster.id),
       new AttributeId(BasicInformationCluster.attributes.vendorId.id),
@@ -536,10 +508,6 @@ export class MatterController {
    * @returns {Promise<MatterAvailableClusters>} the parsed result of the command
    */
   async getDeviceAvailableClusters(nodeId: NodeId): Promise<DbMatterClusters> {
-    if (this.disableMatterController) {
-      return Promise.resolve({} as DbMatterClusters);
-    }
-
     // cycle on endpoints to discover available clusters
     // TODO: this could maybe be done in a more programmatic way, but still not sure how
     //       we could maybe use the descriptor parts-list command

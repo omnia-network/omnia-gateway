@@ -47,18 +47,16 @@ const td: WoT.ThingDescription = {
 export class SimpleWoTDevice {
   thing: WoT.ExposedThing;
   deviceWoT: typeof WoT;
-  td: WoT.ThingDescription;
+  td = td;
 
   value = "";
 
   constructor(deviceWoT: typeof WoT) {
     this.deviceWoT = deviceWoT;
-    this.td = td;
   }
 
   public async startDevice() {
     this.thing = await this.deviceWoT.produce(this.td);
-    this.td = this.thing.getThingDescription();
     this.initializeActions();
     this.initializeProperties();
 
