@@ -11,6 +11,7 @@ const gateway = new OmniaGateway({
     port: parseInt(ENV_VARIABLES.SERVIENT_PORT),
   },
 
+  enableMatterController: ENV_VARIABLES.ENABLE_MATTER_CONTROLLER,
   matterControllerChipWsPort: parseInt(
     ENV_VARIABLES.MATTER_CONTROLLER_CHIP_WS_PORT,
   ),
