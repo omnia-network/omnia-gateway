@@ -96,16 +96,24 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       return;
     }
 
-    const rawNonce = parseInt(
-      req.headers["x-omnia-access-key-nonce"] as string,
-    );
-    if (isNaN(rawNonce)) {
+    const rawNonce = req.headers["x-omnia-access-key-nonce"];
+    if (!rawNonce || typeof rawNonce !== "string") {
       this.logger.warn("X-Omnia-Access-Key-Nonce is missing or invalid");
       res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
       res.end("X-Omnia-Access-Key-Nonce is missing or invalid");
       return;
     }
-    const requestAccessKeyNonce = BigInt(rawNonce);
+
+    // parse the nonce (parsing throws if the nonce is invalid, so we catch it and return an error)
+    let requestAccessKeyNonce: bigint;
+    try {
+      requestAccessKeyNonce = BigInt(rawNonce);
+    } catch (error) {
+      this.logger.warn("X-Omnia-Access-Key-Nonce is invalid");
+      res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
+      res.end("X-Omnia-Access-Key-Nonce is invalid");
+      return;
+    }
 
     const requestAccessKeySignature =
       req.headers["x-omnia-access-key-signature"];
@@ -166,7 +174,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     } else {
       const verifyResult = await this.verifyAccessKey(accessKey);
       if (!verifyResult.verified) {
-        this.logger.warn("Access key not verified");
+        this.logger.error("Access key not verified");
         res.statusCode = UNAUTHORIZED_STATUS_CODE;
         res.end(
           `Access key not verified, reason: ${verifyResult.rejectReason}`,
@@ -227,7 +235,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
         // just log the rejection error
         const rejectReason = JSON.stringify(response.Ok[0].reason);
         this.logger.error(
-          `Access key ${accessKey.key} rejected reason: ${rejectReason})}`,
+          `Access key ${accessKey.key} rejected reason: ${rejectReason}`,
         );
         return {
           verified: false,

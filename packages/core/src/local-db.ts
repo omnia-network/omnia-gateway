@@ -1,5 +1,5 @@
 import { join } from "path";
-import { JSONFile, Low } from "lowdb";
+import { Adapter, Low, TextFile } from "lowdb";
 
 export type LocalDb = Record<string, unknown>;
 
@@ -7,7 +7,47 @@ const DB_PATH = `${process.cwd()}/data`;
 
 const INITIAL_DB: LocalDb = {};
 
-const adapter = new JSONFile<LocalDb>(join(DB_PATH, "db.json"));
+// an adapter that allows us to serialize and deserialize BigInts
+class CustomJSONFile<T> implements Adapter<T> {
+  #adapter: TextFile;
+
+  constructor(filename: string) {
+    this.#adapter = new TextFile(filename);
+  }
+
+  async read(): Promise<T | null> {
+    const data = await this.#adapter.read();
+    if (data === null) {
+      return null;
+    } else {
+      return JSON.parse(data, (_, value) => {
+        if (typeof value === "string") {
+          // this is a hack to get around the fact that BigInts are not supported by JSON
+          // TODO: find a better way to do this
+          try {
+            return BigInt(value);
+          } catch (_e) {
+            // ignore
+          }
+        }
+        return value;
+      }) as T;
+    }
+  }
+
+  write(obj: T): Promise<void> {
+    return this.#adapter.write(
+      JSON.stringify(obj, (_, value) => {
+        if (typeof value === "bigint") {
+          return value.toString();
+        }
+        return value;
+      }),
+    );
+  }
+}
+
+const adapter = new CustomJSONFile<LocalDb>(join(DB_PATH, "db.json"));
 const localDb = new Low(adapter);
 
 export class Store<T extends Record<string, unknown>> {
