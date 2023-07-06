@@ -55,7 +55,7 @@
     "postinstall": "patch-package",
     "start": "node build/src/main.js",
     "build-and-start": "npm run build && npm run start",
-    "clean": "rimraf coverage build tmp",
+    "clean": "rimraf coverage build tmp tsconfig.tsbuildinfo packages/*/tsconfig.tsbuildinfo packages/*/lib/",
     "prebuild": "npm run build --workspaces",
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
