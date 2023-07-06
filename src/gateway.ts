@@ -227,7 +227,9 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
     // if the matter controller is not enabled, we skip pairing and log a warning
     if (!this._enableMatterController) {
       this.logger.warn(
-        `Matter Controller is not enabled, skipping pairing with info: ${pairingInfo}`,
+        `Matter Controller is not enabled, skipping pairing with info: ${JSON.stringify(
+          pairingInfo,
+        )}`,
       );
       return;
     }
