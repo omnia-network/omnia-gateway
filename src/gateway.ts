@@ -57,8 +57,6 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
       standaloneMode: options.standaloneMode,
     });
 
-    let customFetch = fetch;
-
     // proxy must be initialized before other services start
     this._enableProxy = options.enableProxy ?? false;
     if (this._enableProxy) {
@@ -72,8 +70,6 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
         options.proxyUrl,
         options.proxyWgAddress,
       );
-
-      customFetch = this._proxyClient.proxyFetch.bind(this._proxyClient);
     }
 
     this._enableMatterController = options.enableMatterController ?? false;
@@ -93,15 +89,6 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
       });
     }
 
-    // initialize the IC related properties only if we are not in standalone mode
-    if (!this.standaloneMode) {
-      this._icAgent = new IcAgent(customFetch);
-
-      this._accessKeysMiddleware = new IcAccessKeysMiddleware({
-        icAgent: this._icAgent,
-      });
-    }
-
     this.exposeSimpleWoTDevice = options.exposeSimpleDevice ?? false;
   }
 
@@ -112,7 +99,19 @@ export class OmniaGateway extends BaseGateway<MatterDevice> {
       this.wotHttpServerConfig.baseUri = this._proxyClient.proxyUrl;
     }
 
+    // initialize the IC related properties only if we are not in standalone mode
+    // we cannot do this in the constructor because the IC Agent may need to use the fetch function from the proxy client
     if (!this.standaloneMode) {
+      const customFetch = this._proxyClient
+        ? this._proxyClient.proxyFetch.bind(this._proxyClient)
+        : fetch;
+
+      this._icAgent = new IcAgent(customFetch);
+
+      this._accessKeysMiddleware = new IcAccessKeysMiddleware({
+        icAgent: this._icAgent,
+      });
+
       await this._icAgent.start();
     }
 
