@@ -88,7 +88,7 @@ export class MatterController {
       this.chipToolProcess?.stdout?.on("data", (message) => {
         // we should not need this, as we are using the WebSocket
         // and messages are already streamed there
-        this.chipToolLogger.debug(`stdout: ${message.toString()}`);
+        // this.chipToolLogger.debug(`stdout: ${message.toString()}`);
 
         if (message.toString().includes("LWS_CALLBACK_EVENT_WAIT_CANCELLED")) {
           if (!this.isChipToolRunning) {
