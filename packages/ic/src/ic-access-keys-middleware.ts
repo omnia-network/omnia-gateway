@@ -396,7 +396,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     if ("Ok" in reportResult) {
       const rejectedRequests = reportResult.Ok;
 
-      // remove the rejected requests from the incoming list
+      // remove the rejected requests from the incoming list and the allowed list
       for (const rejectedRequest of rejectedRequests) {
         if (incoming[rejectedRequest.key]) {
           delete incoming[rejectedRequest.key];
@@ -406,7 +406,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
         }
       }
 
-      // only add the verified requests to the allowed list
+      // only add the verified requests to the allowed list and remove them from the incoming list
       const verifiedKeys = incomingAccessKeys.filter(
         (ak) => rejectedRequests.findIndex((rr) => rr.key === ak.key) === -1,
       );
@@ -414,6 +414,7 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
         allowed[verifiedKey.key] = {
           lastVerifiedAt: new Date().getTime(),
         };
+        delete incoming[verifiedKey.key];
       }
 
       this.logger.debug(
