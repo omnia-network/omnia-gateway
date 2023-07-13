@@ -7,6 +7,7 @@ import type {
   MiddlewareRequestHandlerArgs,
   Timestamp,
 } from "@omnia-gateway/core";
+import type { IncomingMessage, ServerResponse } from "http";
 
 const MISSING_OR_INVALID_HEADER_STATUS_CODE = 400;
 const UNAUTHORIZED_STATUS_CODE = 401;
@@ -46,6 +47,16 @@ type DbAccessKeys = {
   };
 };
 
+type IdempotentRequests = {
+  [key: string]: {
+    status: "pending" | "done";
+    response?: {
+      status: number;
+      body: string;
+    };
+  };
+};
+
 /**
  * Manages the access keys by verifying the keys against the Omnia Backend, using the IC Agent.
  */
@@ -56,11 +67,16 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
   private _checkEmitter: EventEmitter;
   private _checkInterval: NodeJS.Timeout | undefined;
 
+  private _idempotentRequests: IdempotentRequests = {};
+  private _idempotencyEmitter: EventEmitter;
+
   private logger = getLogger("IcAccessKeysMiddleware");
 
   constructor(params: IcAccessKeysMiddlewareParams) {
     this._icAgent = params.icAgent;
     this._checkEmitter = new EventEmitter();
+    this._idempotencyEmitter = new EventEmitter();
+    this._idempotencyEmitter.setMaxListeners(30); // IC replicas can be up to 30
   }
 
   /**
@@ -87,21 +103,82 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
   }
 
   async handler(...[req, res, next]: MiddlewareRequestHandlerArgs) {
+    // check if the request is idempotent
+    const idempotentKey = req.headers["idempotent-key"] as string | undefined;
+    if (idempotentKey) {
+      const idempotentRequest = this._idempotentRequests[idempotentKey];
+      // if the request has already been processed, return the response
+      if (idempotentRequest?.status === "done" && idempotentRequest?.response) {
+        this.logger.debug(
+          `Request with idempotent key ${idempotentKey} has already been processed, returning the response`,
+        );
+
+        return this.sendResponse(
+          res,
+          idempotentRequest.response.status,
+          idempotentRequest.response.body,
+        );
+      } else if (idempotentRequest?.status === "pending") {
+        this.logger.debug(
+          `Request with idempotent key ${idempotentKey} is pending, waiting for it to be processed`,
+        );
+        // if the request is still pending, wait for it to be processed
+        await new Promise((resolve) => {
+          this._idempotencyEmitter.once("done", (ik) => {
+            // check if the request has been processed for this idempotent key
+            if (ik === idempotentKey) {
+              resolve(undefined);
+            }
+          });
+        });
+
+        this.logger.debug(
+          `Request with idempotent key ${idempotentKey} has finished processing, returning the response`,
+        );
+
+        // once the request has been processed, return the response
+        return this.sendResponse(
+          res,
+          this._idempotentRequests[idempotentKey].response!.status,
+          this._idempotentRequests[idempotentKey].response!.body,
+        );
+      } else {
+        this.logger.debug(
+          `Request with idempotent key ${idempotentKey} is not pending nor done, processing it`,
+        );
+
+        // set the request as pending
+        this._idempotentRequests[idempotentKey] = {
+          status: "pending",
+        };
+      }
+    }
+
     // check if all headers are present
     const requestAccessKey = req.headers["x-omnia-access-key"];
     if (!requestAccessKey || typeof requestAccessKey !== "string") {
-      this.logger.warn("X-Omnia-Access-Key header is missing or invalid");
-      res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
-      res.end("X-Omnia-Access-Key header is missing or invalid");
-      return;
+      const err = "X-Omnia-Access-Key header is missing or invalid";
+      this.logger.error(err);
+
+      return this.sendResponse(
+        res,
+        MISSING_OR_INVALID_HEADER_STATUS_CODE,
+        err,
+        idempotentKey,
+      );
     }
 
     const rawNonce = req.headers["x-omnia-access-key-nonce"];
     if (!rawNonce || typeof rawNonce !== "string") {
-      this.logger.warn("X-Omnia-Access-Key-Nonce is missing or invalid");
-      res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
-      res.end("X-Omnia-Access-Key-Nonce is missing or invalid");
-      return;
+      const err = "X-Omnia-Access-Key-Nonce header is missing or invalid";
+      this.logger.error(err);
+
+      return this.sendResponse(
+        res,
+        MISSING_OR_INVALID_HEADER_STATUS_CODE,
+        err,
+        idempotentKey,
+      );
     }
 
     // parse the nonce (parsing throws if the nonce is invalid, so we catch it and return an error)
@@ -109,10 +186,15 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     try {
       requestAccessKeyNonce = BigInt(rawNonce);
     } catch (error) {
-      this.logger.warn("X-Omnia-Access-Key-Nonce is invalid");
-      res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
-      res.end("X-Omnia-Access-Key-Nonce is invalid");
-      return;
+      const err = "X-Omnia-Access-Key-Nonce header is invalid";
+      this.logger.error(err);
+
+      return this.sendResponse(
+        res,
+        MISSING_OR_INVALID_HEADER_STATUS_CODE,
+        err,
+        idempotentKey,
+      );
     }
 
     const requestAccessKeySignature =
@@ -121,18 +203,28 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       !requestAccessKeySignature ||
       typeof requestAccessKeySignature !== "string"
     ) {
-      this.logger.warn("X-Omnia-Access-Key-Signature is missing or invalid");
-      res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
-      res.end("X-Omnia-Access-Key-Signature is missing or invalid");
-      return;
+      const err = "X-Omnia-Access-Key-Signature header is missing or invalid";
+      this.logger.error(err);
+
+      return this.sendResponse(
+        res,
+        MISSING_OR_INVALID_HEADER_STATUS_CODE,
+        err,
+        idempotentKey,
+      );
     }
 
     const requestCanisterId = req.headers["x-ic-canister-id"];
     if (!requestCanisterId || typeof requestCanisterId !== "string") {
-      this.logger.warn("X-IC-Canister-Id is missing or invalid");
-      res.statusCode = MISSING_OR_INVALID_HEADER_STATUS_CODE;
-      res.end("X-IC-Canister-Id is missing or invalid");
-      return;
+      const err = "X-IC-Canister-Id header is missing or invalid";
+      this.logger.error(err);
+
+      return this.sendResponse(
+        res,
+        MISSING_OR_INVALID_HEADER_STATUS_CODE,
+        err,
+        idempotentKey,
+      );
     }
 
     const accessKey: IncomingAccessKey = {
@@ -157,10 +249,15 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
           (ak) => ak.nonce === requestAccessKeyNonce,
         )
       ) {
-        this.logger.warn("Access key already used");
-        res.statusCode = UNAUTHORIZED_STATUS_CODE;
-        res.end("Access key already used");
-        return;
+        const err = "Access key already used";
+        this.logger.error(err);
+
+        return this.sendResponse(
+          res,
+          UNAUTHORIZED_STATUS_CODE,
+          err,
+          idempotentKey,
+        );
       }
 
       // store the access key as incoming
@@ -174,12 +271,15 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     } else {
       const verifyResult = await this.verifyAccessKey(accessKey);
       if (!verifyResult.verified) {
-        this.logger.error("Access key not verified");
-        res.statusCode = UNAUTHORIZED_STATUS_CODE;
-        res.end(
-          `Access key not verified, reason: ${verifyResult.rejectReason}`,
+        const err = `Access key not verified, reason: ${verifyResult.rejectReason}`;
+        this.logger.error(err);
+
+        return this.sendResponse(
+          res,
+          UNAUTHORIZED_STATUS_CODE,
+          err,
+          idempotentKey,
         );
-        return;
       }
 
       // store the access key as allowed
@@ -191,6 +291,22 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
     }
 
     next();
+
+    if (idempotentKey) {
+      // set the request as done
+      // TODO: we need to send the response of the Servient back to the caller,
+      // because right now we are just sending an empty response.
+      // We need to somehow get the response from the next() function, maybe as a callback?
+      this._idempotentRequests[idempotentKey] = {
+        status: "done",
+        response: {
+          status: 200,
+          body: "",
+        },
+      };
+
+      this._idempotencyEmitter.emit("done", idempotentKey);
+    }
 
     // check if there are any access keys that need to be verified
     const incomingAccessKeys = await this.getAllIncomingAccessKeys();
@@ -313,5 +429,28 @@ export class IcAccessKeysMiddleware implements BaseAccessKeysMiddleware {
       incoming,
     };
     await this._localDb.save();
+  }
+
+  private sendResponse(
+    res: ServerResponse<IncomingMessage>,
+    status: number,
+    body: string,
+    idempotentKey?: string,
+  ): void {
+    // set the idempotent response if the idempotent key is set
+    if (idempotentKey) {
+      this._idempotentRequests[idempotentKey] = {
+        status: "done",
+        response: {
+          status,
+          body,
+        },
+      };
+
+      this._idempotencyEmitter.emit("done", idempotentKey);
+    }
+
+    res.statusCode = status;
+    res.end(body);
   }
 }

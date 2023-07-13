@@ -1,5 +1,5 @@
-proxy_cache_path  /cache  levels=1:2  keys_zone=STATIC:10m
-inactive=24h  max_size=100m;
+# proxy_cache_path  /cache  levels=1:2  keys_zone=STATIC:10m
+# inactive=24h  max_size=100m;
 
 log_format upstreamlog '[$time_local] $remote_addr to: $upstream_addr: $request cache $upstream_cache_status upstream_response_time $upstream_response_time msec $msec request_time $request_time';
 
@@ -17,11 +17,11 @@ server {
     proxy_set_header       Connection "Keep-Alive";
     proxy_set_header       Proxy-Connection "Keep-Alive";
 
-    proxy_cache            STATIC;
-    proxy_cache_valid      any  30s;
-    # here's the magic, we cache requests by the Idempotent-Key header
-    proxy_cache_key        $http_idempotent_key;
-    proxy_cache_methods    GET POST;
+    # proxy_cache            STATIC;
+    # proxy_cache_valid      any  30s;
+    # # here's the magic, we cache requests by the Idempotent-Key header
+    # proxy_cache_key        $http_idempotent_key;
+    # proxy_cache_methods    GET POST;
 
     location / {
         proxy_pass             ${GATEWAY_URL};
