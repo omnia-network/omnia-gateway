@@ -6,10 +6,10 @@ import fetch from "node-fetch";
 import * as WoT from "wot-typescript-definitions";
 import { MatterController } from "../matter-controller/controller.js";
 import type {
-  DbDevice,
+  MatterDevice,
   WotActionHandlerCommand,
   WotPropertyHandlerAttribute,
-} from "../models/index.js";
+} from "../models";
 
 /**
  * A WoT device that is connected to a Matter device.
@@ -23,13 +23,13 @@ export class MatterWotDevice {
   private nodeId: NodeId;
   private tdDirectory: string;
   private matterController: MatterController;
-  private localDevice: DbDevice;
+  private localDevice: MatterDevice;
 
   constructor(
     deviceWoT: typeof WoT,
     thingDescription: WoT.ThingDescription,
     matterController: MatterController,
-    localDevice: DbDevice,
+    localDevice: MatterDevice,
     tdDirectory?: string,
   ) {
     this.deviceWoT = deviceWoT;

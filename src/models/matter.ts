@@ -1,4 +1,5 @@
 import clusters from "../../matter/clusters.json";
+import type { Device } from "@omnia-gateway/core";
 
 // TODO: improve nested types
 
@@ -53,4 +54,29 @@ export type MatterCluster = {
 export type MatterClusterId = keyof typeof clusters;
 export type MatterAvailableClusters = {
   [key in MatterClusterId]: MatterCluster;
+};
+
+export type DbMatterDeviceInfo = {
+  vendorId: number;
+  productId: number;
+
+  // TODO: make it required, which means we need to change the way we initialize this object
+  pairingCode?: string;
+};
+
+export type MatterNodeId = number;
+
+export type DbMatterCluster = {
+  clusterId: number;
+  endpointId: number;
+};
+
+export type DbMatterClusters = {
+  [key: number]: DbMatterCluster;
+};
+
+export type MatterDevice = Device & {
+  matterNodeId: MatterNodeId;
+  matterInfo: DbMatterDeviceInfo;
+  matterClusters: DbMatterClusters;
 };

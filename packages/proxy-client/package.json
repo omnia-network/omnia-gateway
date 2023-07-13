@@ -1,0 +1,18 @@
+{
+  "name": "@omnia-gateway/proxy-client",
+  "version": "0.0.1",
+  "description": "The client used to connect the Gateway to a proxy",
+  "main": "lib/proxy-client.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint . --ext .ts --ext .mts",
+    "test": "jest",
+    "prettier": "prettier --config ../../.prettierrc --write ."
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@omnia-gateway/core": "^0.0.1"
+  }
+}

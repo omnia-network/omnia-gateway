@@ -1,5 +1,5 @@
 /**/*.js
-src/canisters/**/*
+packages/ic/src/canisters/**/*
 volumes/**/*
 node_modules/**/*
 build/**/*
